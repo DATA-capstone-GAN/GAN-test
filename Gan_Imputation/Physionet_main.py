@@ -7,7 +7,7 @@ Created on Fri Feb  2 13:54:53 2018
 """
 from __future__ import print_function
 import sys
-sys.path.append("..")
+sys.path.append("mnt/Multivariate-Time-Series-Imputation-with-Generative-Adversarial-Networks/GRUI")
 import WGAN_GRUI 
 import tensorflow as tf
 import argparse

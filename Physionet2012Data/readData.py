@@ -422,7 +422,7 @@ class ReadPhysionetData():
 
 if __name__ == '__main__':
     
-    dt=ReadPhysionetData("/home/yonghong/ImputationAndPredictionUsingGAN/set-a/train", "/home/yonghong/ImputationAndPredictionUsingGAN/set-a/train/list.txt",isNormal=True,isSlicing=True)
+    dt=ReadPhysionetData("mnt/Multivariate-Time-Series-Imputation-with-Generative-Adversarial-Networks/GRUI", "mnt/Multivariate-Time-Series-Imputation-with-Generative-Adversarial-Networks/GRUI",isNormal=True,isSlicing=True)
     dt.shuffle(128,False)
     batchCount=1
     X_lengths=dt.x_lengths

@@ -8,6 +8,10 @@ import numpy as np
 from tensorflow.python.ops import math_ops
 from ops import *
 from utils import *
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append("mnt/Multivariate-Time-Series-Imputation-with-Generative-Adversarial-Networks/GRUI")
+#sys.path.append("..")
 from GRUI import mygru_cell
 
 """
