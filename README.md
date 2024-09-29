@@ -1,7 +1,8 @@
 # Multivariate-Time-Series-Imputation-with-Generative-Adversarial-Networks
- author: Yonghong Luo, Xiangrui Cai, Ying Zhang, Jun Xu and Xiaojie Yuan
- 
+ author: Yonghong Luo, Xiangrui Cai, Ying Zhang, Jun Xu and Xiaojie Yuan 
  tensorflow version:1.7 python:2.7
+
+
 ## The proposed method is a two-stage method. We first train GAN, then we train the input vector of the generator of GAN.
 ### To run the code, go to the Gan_Imputation folder:
  Execute the Physionet_main.py file, then we will get 3 folders named as "checkpoint" (the saved models), G_results (the generated samples), imputation_test_results (the imputed test dataset) and imputation_train_results (the imputed train dataset).
@@ -11,3 +12,9 @@ Excute the Run_GAN_imputed.py file, then one floder-"checkpoint_physionet_impute
 ### Final result file location
 GRUI/max_auc  is the file that record final auc score
 # GAN-test
+
+# Credits
+Marcus Snell/
+Connor Kozlowski/
+Conor Aguilar/
+Yonghong Luo, Xiangrui Cai, Ying Zhang, Jun Xu and Xiaojie Yuan
