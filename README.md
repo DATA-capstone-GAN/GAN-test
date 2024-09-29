@@ -21,3 +21,6 @@ Marcus Snell\
 Connor Kozlowski\
 Conor Aguilar\
 Yonghong Luo, Xiangrui Cai, Ying Zhang, Jun Xu and Xiaojie Yuan
+
+# Sources
+https://github.com/Luoyonghong/Multivariate-Time-Series-Imputation-with-Generative-Adversarial-Networks
