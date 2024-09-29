@@ -14,7 +14,7 @@ GRUI/max_auc  is the file that record final auc score
 # GAN-test
 
 # Credits
-Marcus Snell/
-Connor Kozlowski/
-Conor Aguilar/
+Marcus Snell\
+Connor Kozlowski\
+Conor Aguilar\
 Yonghong Luo, Xiangrui Cai, Ying Zhang, Jun Xu and Xiaojie Yuan
