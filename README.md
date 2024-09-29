@@ -1,4 +1,5 @@
 # Generative-Adversarial-Network for Time Series Imputation - Data Science Capstone
+#### Original Work
 title: Multivariate-Time-Series-Imputation-with-Generative-Adversarial-Networks\
 author: Yonghong Luo, Xiangrui Cai, Ying Zhang, Jun Xu and Xiaojie Yuan\
 tensorflow version:1.7 python:2.7
