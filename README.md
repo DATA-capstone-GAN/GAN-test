@@ -1,4 +1,4 @@
-# Capstone - Generative-Adversarial-Networks
+# Generative-Adversarial-Networks - Data Science Capstone
 ## Multivariate-Time-Series-Imputation-with-Generative-Adversarial-Networks
 
  author: Yonghong Luo, Xiangrui Cai, Ying Zhang, Jun Xu and Xiaojie Yuan\
@@ -6,7 +6,7 @@
 
  Project Description: This is a research project for a Data Science Capstone course utilizing the work of the identified authors.  The goal is to understand the methods used and add detailed comments to the code and improve upon anything that allows.  Our hope is that anyone who reviews the code can understand what each section is accomplishing so that it may be easily reproduced.   
 
-
+# How to Use
 ## The proposed method is a two-stage method. We first train GAN, then we train the input vector of the generator of GAN.
 ### To run the code, go to the Gan_Imputation folder:
  Execute the Physionet_main.py file, then we will get 3 folders named as "checkpoint" (the saved models), G_results (the generated samples), imputation_test_results (the imputed test dataset) and imputation_train_results (the imputed train dataset).
