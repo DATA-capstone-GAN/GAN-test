@@ -6,9 +6,9 @@ import os
 class MyDataset(data.Dataset):
     def __init__(self, dataPath, labelPath):
         labelFile = open(labelPath) # open file provided in class parameter
-        dataset=[] #initial empty dataset list
+        dataset=[] #initialize empty dataset list
         #dataset: filenames,labels
-        line_num = 0 # initialize empty line counter
+        line_num = 0 # initialize line counter
         for line in  labelFile.readlines(): # return all lines in file, each line is an item in a list object
         # rstrip() remove spaces in right end
             if line_num!=0:
