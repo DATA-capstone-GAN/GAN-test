@@ -20,6 +20,9 @@ https://www.docker.com/products/docker-desktop/
 
 Enter `docker version` in command line/Windows Powershell
 
+![image](https://github.com/user-attachments/assets/2812e749-110d-4c43-9878-c914fe3abda7)
+
+
 ### 2. Create a container environment in Docker
 ### To run the code, go to the Gan_Imputation folder:
  Execute the Physionet_main.py file, then we will get 3 folders named as "checkpoint" (the saved models), G_results (the generated samples), imputation_test_results (the imputed test dataset) and imputation_train_results (the imputed train dataset).
