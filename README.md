@@ -43,7 +43,7 @@ After the zip file has been downloaded, unzip its contents and store the folder 
 
 ### 4. Open the Docker Desktop Application
 
-Select the `file` tab in the Desktop Application and import your previous download from your local computer into the `mnt` folder
+Select the `file` tab in the Desktop Application and import your previous download from your local computer into the `mnt` folder. The access the the drop down menu where `import` is located just right click on the `mnt` folder.
 
 ![image](https://github.com/user-attachments/assets/ad9e13fc-61f2-49f0-b318-31d89b4c7469)
 
