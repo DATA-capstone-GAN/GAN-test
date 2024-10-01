@@ -5,7 +5,7 @@ author: Yonghong Luo, Xiangrui Cai, Ying Zhang, Jun Xu and Xiaojie Yuan\
 tensorflow version:1.7 python:2.7
 
 #### Project Description: 
-This is a research project for a Data Science Capstone course utilizing the work of the identified authors.  The goal is to understand the methods used and add detailed comments to the code and improve upon anything that allows.  Our hope is that anyone who reviews the code can understand what each section is accomplishing so that it may be easily reproduced.   
+This is a research project for a Data Science Capstone course utilizing the work of the identified authors.  The goal is to understand the methods used, add detailed comments to the code, and improve upon anything that allows.  Our hope is that anyone who reviews the code can understand what each section is accomplishing so that it may be easily reproduced.   
 
 # How to Use
 The proposed method is a two-stage method. We first train GAN, then we train the input vector of the generator of GAN.
