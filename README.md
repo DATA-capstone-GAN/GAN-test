@@ -35,7 +35,10 @@ Enter `docker run d p 888 6 :888 6 name tensorflow container2 tensorflow/tensorf
 
 ![image](https://github.com/user-attachments/assets/4fd398d5-12f6-46b0-9866-4f10c55fbff5)
 
-### 3. Open the Docker desktop application
+### 3. Download git files
+
+![image](https://github.com/user-attachments/assets/1d0ea635-c14c-4d06-8cf4-5efc1455c110)
+
 
 
 ### To run the code, go to the Gan_Imputation folder:
