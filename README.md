@@ -9,6 +9,18 @@ This is a research project for a Data Science Capstone course utilizing the work
 
 # How to Use
 The proposed method is a two-stage method. We first train GAN, then we train the input vector of the generator of GAN.
+
+### 1. Dowload Docker Desktop Application for your specific system and install it.
+
+https://www.docker.com/products/docker-desktop/
+
+### Open Windows Powershell or command line
+
+#### Validate Docker is correctly installed
+
+Enter `docker version` in command line/Windows Powershell
+
+### 2. Create a container environment in Docker
 ### To run the code, go to the Gan_Imputation folder:
  Execute the Physionet_main.py file, then we will get 3 folders named as "checkpoint" (the saved models), G_results (the generated samples), imputation_test_results (the imputed test dataset) and imputation_train_results (the imputed train dataset).
  
