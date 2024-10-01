@@ -11,7 +11,7 @@ This is a research project for a Data Science Capstone course utilizing the work
 The proposed method is a two-stage method. We first train GAN, then we train the input vector of the generator of GAN.
 
 ### 1. Dowload Docker Desktop Application for your specific system and install it.
-This is required becuase the code in use for this project contains Tensorflow 1.7 objects which have since been replaced.  There may be other methods that will still allow the use of the older Tensorflow but this is the one we found to work for us.
+This is required because the code in use for this project contains Tensorflow 1.7 objects which have since been replaced.  There may be other methods that will still allow the use of the older Tensorflow but this is the one we found to work for us.
 
 https://www.docker.com/products/docker-desktop/
 
