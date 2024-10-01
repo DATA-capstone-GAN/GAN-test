@@ -35,9 +35,18 @@ Enter `docker run d p 888 6 :888 6 name tensorflow container2 tensorflow/tensorf
 
 ![image](https://github.com/user-attachments/assets/4fd398d5-12f6-46b0-9866-4f10c55fbff5)
 
-### 3. Download git files
+### 3. Download git zip file
 
 ![image](https://github.com/user-attachments/assets/1d0ea635-c14c-4d06-8cf4-5efc1455c110)
+
+After the zip file has been downloaded, unzip its contents and store the folder in a location you will know where to access it.
+
+### 4. Open the Docker Desktop Application
+
+Select the file tab in the Desktop Application and import your previous download from your local computer into the `mnt` folder
+
+![image](https://github.com/user-attachments/assets/ad9e13fc-61f2-49f0-b318-31d89b4c7469)
+
 
 
 
