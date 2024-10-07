@@ -19,11 +19,14 @@ D输入标准化， 不要m 填充0
 G输入去掉m,只有delta
 g 没有每次累加z
 """
+#This class builds a Wasserstein Generative Adversarial Network (WGAN)
+#The main difference between this and a traditional GAN is the replacement of the loss function from binary cross entropy to the Wasserstein distance.
 class WGAN(object):
     model_name = "WGAN_no_mask"     # name for checkpoint
 
+    #WGAN constructor: establishes arguments needed when the class is called and creates required variables for the remaining methods of the class.
     def __init__(self, sess, args, datasets):
-        self.sess = sess
+        self.sess = sess 
         self.isbatch_normal=args.isBatch_normal
         self.isNormal=args.isNormal
         self.checkpoint_dir = args.checkpoint_dir
