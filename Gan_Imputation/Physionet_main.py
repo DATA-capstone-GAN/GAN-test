@@ -17,7 +17,11 @@ import os
 
 """main"""
 def main():
-    # parse arguments
+    #parse arguments
+    #This creates command line arguments (variables) that will be passed to the WGAN. 
+    #This is useful because we can change any parameter from  the command line when we run the code without having to change the code itself.
+    #This creates ease of use when trying to increase the performance of the WGAN by finding the right parameter values.
+    #Example: python Physionet_main.py --batch-size 64
     parser = argparse.ArgumentParser(description='manual to this script')
     parser.add_argument('--gpus', type=str, default = None)
     parser.add_argument('--batch-size', type=int, default=128)
@@ -31,8 +35,7 @@ def main():
     parser.add_argument('--dataset-name', type=str, default=None)
     parser.add_argument('--g-loss-lambda',type=float,default=0.1)
     parser.add_argument('--beta1',type=float,default=0.5)
-    parser.add_argument('--lr', type=float, default=0.001)
-    #lr 0.001的时候 pretrain_loss降的很快，4个epoch就行了
+    parser.add_argument('--lr', type=float, default=0.001)  #When the learning rate (lr) is 0.001, the pretrain_loss decreases quickly, and 4 epochs are sufficient.
     parser.add_argument('--epoch', type=int, default=30)
     parser.add_argument('--n-inputs', type=int, default=41)
     parser.add_argument('--n-hidden-units', type=int, default=64)
@@ -44,13 +47,14 @@ def main():
                         help='Directory name to save the generated images')
     parser.add_argument('--log-dir', type=str, default='logs',
                         help='Directory name to save training logs')
-    parser.add_argument('--isNormal',type=int,default=1)
-    #0 false 1 true
+    parser.add_argument('--isNormal',type=int,default=1)  #0 false 1 true
     parser.add_argument('--isBatch-normal',type=int,default=1)
     parser.add_argument('--isSlicing',type=int,default=1)
     parser.add_argument('--disc-iters',type=int,default=8)
     args = parser.parse_args()
-    
+
+    #This converts these integer command line arguments to boolean values.
+    #This makes the code more readable and easier to use.
     if args.isBatch_normal==0:
             args.isBatch_normal=False
     if args.isBatch_normal==1:
@@ -64,10 +68,13 @@ def main():
     if args.isSlicing==1:
             args.isSlicing=True
 
-    #make the max step length of two datasett the same
-    epochs=[30]
-    g_loss_lambdas=[0.15]
-    beta1s=[0.5]
+    #Make the max step length of two datasets the same.
+    #Initialize hyperparameters for WGAN training.
+    epochs=[30]  #Indicates the number of training epochs.
+    g_loss_lambdas=[0.15]  #Indicates the weight of the generator loss, affects the rate at which the generator learns.  Increasing value causes faster learning compared to the discriminator.
+    beta1s=[0.5]  #Indicates the momentum parameter for the Adam optimizer, helps stabalize the training of the GAN and prevent getting stuck in a local minima.
+
+    #Loop over all possible combinations of the previously defined hyperparameters.
     for beta1 in beta1s:
         for e in epochs:
             for g_l in g_loss_lambdas:
