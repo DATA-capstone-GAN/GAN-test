@@ -10,7 +10,7 @@ import sys
 sys.path.append("mnt/Multivariate-Time-Series-Imputation-with-Generative-Adversarial-Networks/GRUI")
 import WGAN_GRUI 
 import tensorflow as tf
-import argparse
+import argparse #used to parse command line arguments and convert them to usable variables
 import numpy as np
 from Physionet2012Data import readData, readTestData
 import os
