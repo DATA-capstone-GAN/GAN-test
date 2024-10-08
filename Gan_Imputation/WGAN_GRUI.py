@@ -25,7 +25,7 @@ class WGAN(object):
     model_name = "WGAN_no_mask"     # name for checkpoint
 
     #WGAN constructor: establishes arguments needed when the class is called and creates required variables for the remaining methods of the class.
-    #All args. calls are taking the default value created in the Physionet_main.py file or whatever modification is passed via the command line when it is executed. 
+    #All args. calls are taking the default value passed in the Physionet_main.py file or whatever modification is passed via the command line when it is executed. 
     def __init__(self, sess, args, datasets):
         self.sess = sess 
         self.isbatch_normal=args.isBatch_normal
