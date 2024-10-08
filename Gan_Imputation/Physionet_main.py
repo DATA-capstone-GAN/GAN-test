@@ -54,7 +54,7 @@ def main():
     args = parser.parse_args()
 
     #This converts these integer command line arguments to boolean values.
-    #This makes the code more readable and easier to use.
+    #This makes the WGAN code more readable and easier to use.
     if args.isBatch_normal==0:
             args.isBatch_normal=False
     if args.isBatch_normal==1:
@@ -81,35 +81,38 @@ def main():
                 args.epoch=e
                 args.beta1=beta1
                 args.g_loss_lambda=g_l
-                tf.reset_default_graph()
-                dt_train=readData.ReadPhysionetData(os.path.join(args.data_path,"train"), os.path.join(args.data_path,"train","list.txt"),isNormal=args.isNormal,isSlicing=args.isSlicing)
-                dt_test=readTestData.ReadPhysionetData(os.path.join(args.data_path,"test"), os.path.join(args.data_path,"test","list.txt"),dt_train.maxLength,isNormal=args.isNormal,isSlicing=args.isSlicing)
-                tf.reset_default_graph()
-                config = tf.ConfigProto() 
-                config.gpu_options.allow_growth = True 
-                with tf.Session(config=config) as sess:
+                tf.reset_default_graph()  #Clears current tensorflow graph.  Resets computation graph before starting a new model training run
+                dt_train=readData.ReadPhysionetData(os.path.join(args.data_path,"train"), os.path.join(args.data_path,"train","list.txt"),isNormal=args.isNormal,isSlicing=args.isSlicing)  #Executes readData.py which reads in training data.
+                dt_test=readTestData.ReadPhysionetData(os.path.join(args.data_path,"test"), os.path.join(args.data_path,"test","list.txt"),dt_train.maxLength,isNormal=args.isNormal,isSlicing=args.isSlicing)  #Executes readPhysionetData.py which reads in test data.
+                tf.reset_default_graph()  #Clears current tensorflow graph.  Resets computation graph before starting a new model training run.
+                config = tf.ConfigProto() #Configures the TensorFlow session.
+                config.gpu_options.allow_growth = True  #Allows the GPU to grow dynamically instead of allocating GPU memory at the start
+                with tf.Session(config=config) as sess:  #Create new TensorFlow session.  This session will be used to execute all the operations in the computation graph.
+                    #Create WGAN_GRUI instance with args (default and any modifications passed), TF session, and read in training set.
                     gan = WGAN_GRUI.WGAN(sess,
                                 args=args,
                                 datasets=dt_train,
                                 )
             
-                    # build graph
+                    # Build WGAN model graph, defines the generator, discriminator, and loss functions. 
                     gan.build_model()
             
                     # show network architecture
                     #show_all_variables()
             
-                    # launch the graph in a session
+                    # launch the training process of the WGAN.
                     gan.train()
                     print(" [*] Training finished!")
-                    
+
+                    #Conducts imputation on the training set based on the results of the gan.train().
                     gan.imputation(dt_train,True)
                     
                     print(" [*] Train dataset Imputation finished!")
-                    
+
+                    #Conducts imputation on the test set based on the results of the gan.train().
                     gan.imputation(dt_test,False)
                     
                     print(" [*] Test dataset Imputation finished!")
-                tf.reset_default_graph()
+                tf.reset_default_graph()  #Clears current tensorflow graph.  Resets computation graph before starting a new model training run
 if __name__ == '__main__':
     main()
