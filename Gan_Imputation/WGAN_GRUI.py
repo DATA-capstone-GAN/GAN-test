@@ -15,9 +15,9 @@ sys.path.append("mnt/Multivariate-Time-Series-Imputation-with-Generative-Adversa
 from GRUI import mygru_cell
 
 """
-D输入标准化， 不要m 填充0
-G输入去掉m,只有delta
-g 没有每次累加z
+Discriminator input normalization, do not use m, fill with 0
+Generator input: remove m, only keep delta.
+g does not accumulate z every time.
 """
 #This class builds a Wasserstein Generative Adversarial Network (WGAN)
 #The main difference between this and a traditional GAN is the replacement of the loss function from binary cross entropy to the Wasserstein distance.
@@ -25,6 +25,7 @@ class WGAN(object):
     model_name = "WGAN_no_mask"     # name for checkpoint
 
     #WGAN constructor: establishes arguments needed when the class is called and creates required variables for the remaining methods of the class.
+    #All args. calls are taking the default value created in the Physionet_main.py file or whatever modification is passed via the command line when it is executed. 
     def __init__(self, sess, args, datasets):
         self.sess = sess 
         self.isbatch_normal=args.isBatch_normal
@@ -37,11 +38,11 @@ class WGAN(object):
         self.lr = args.lr                 
         self.epoch = args.epoch     
         self.batch_size = args.batch_size
-        self.n_inputs = args.n_inputs                 # MNIST data input (img shape: 28*28)
-        self.n_steps = datasets.maxLength                                # time steps
-        self.n_hidden_units = args.n_hidden_units        # neurons in hidden layer
-        self.n_classes = args.n_classes                # MNIST classes (0-9 digits)
-        self.gpus=args.gpus
+        self.n_inputs = args.n_inputs                 # This is the number of inputs/features the network will accept (data input size). MNIST data input (img shape: 28*28)
+        self.n_steps = datasets.maxLength             # This represents the time steps used in the time series.
+        self.n_hidden_units = args.n_hidden_units     # This is the number of neurons in hidden layer.
+        self.n_classes = args.n_classes               # This is the number of output classes.  MNIST classes (0-9 digits).
+        self.gpus=args.gpus                           # This identifies which GPUs are available for use during training.
         self.run_type=args.run_type
         self.result_path=args.result_path
         self.model_path=args.model_path
@@ -50,15 +51,18 @@ class WGAN(object):
         self.isSlicing=args.isSlicing
         self.g_loss_lambda=args.g_loss_lambda
         
-        self.datasets=datasets
+        self.datasets=datasets          # This stores the dataset object for accessing the training data.
         self.z_dim = args.z_dim         # dimension of noise-vector
         self.gen_length=args.gen_length
         
         # WGAN_GP parameter
-        self.lambd = 0.25       # The higher value, the more stable, but the slower convergence
-        self.disc_iters = args.disc_iters     # The number of critic iterations for one-step of generator
+        self.lambd = 0.25       # WGAN gradient penalty.  The higher value, the more stable, but the slower convergence.
+        self.disc_iters = args.disc_iters     # The number of discriminator iterations for one-step of generator.
 
         # train
+        # This includes a TensorFlow version check and implements different mygru_cells from mygru_cell.py depending on the TF version.
+        # The TF version check isn't really useful anymore as all of these versions are outdated.  We are using the TF version 1.7 managed through the Docker Desktop Application.
+        # The mygru_cell is used for processing the time series data.
         self.learning_rate = args.lr
         self.beta1 = args.beta1
         if "1.5" in tf.__version__ or "1.7" in tf.__version__ :
@@ -71,118 +75,131 @@ class WGAN(object):
             self.grud_cell_d = mygru_cell.MyGRUCell2(self.n_hidden_units)
             self.grud_cell_g = mygru_cell.MyGRUCell2(self.n_hidden_units)
         # test
-        self.sample_num = 64  # number of generated images to be saved
+        self.sample_num = 64  # This establishes the number of generated samples (images) to be saved at each evaluation phase.  Used to evaluate the generators performance visually.
 
-        self.num_batches = len(datasets.x) // self.batch_size
+        self.num_batches = len(datasets.x) // self.batch_size  #Establishes how many iterations the model will run through the dataset in each epoch.  The total number of batches available for training.
 
-      
+    # This method pretrains the generator to generate plausible data based on the training data.
+    # X = input, M = mask matrix(identifies which values are missing and which are present), Delta = time gap
     def pretrainG(self, X, M, Delta,  Mean, Lastvalues, X_lengths, Keep_prob, is_training=True, reuse=False):
         
-        with tf.variable_scope("g_enerator", reuse=reuse):
+        with tf.variable_scope("g_enerator", reuse=reuse):  # Defines scope of the the variables. Ensures all variables created within scope are tied to the generators model.  
             
             """
             the rnn cell's variable scope is defined by tensorflow,
-            if we want to update rnn cell's weights, the variable scope must contains 'g_' or 'd_'
-            
+            if we want to update rnn cell's weights, the variable scope must contains 'g_' or 'd_'            
             """
-            
+            # These lines define the weights for the input data and the final output predictions.  w_out is the weight matrix for the output predictions.
             wr_h=tf.get_variable("g_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer())
             w_out= tf.get_variable("g_w_out",shape=[self.n_hidden_units, self.n_inputs],initializer=tf.random_normal_initializer())
-            
+
+            # These lines initialize the biases for both the hidden and output layers.
             br_h= tf.get_variable("g_br_h",shape=[self.n_hidden_units, ],initializer=tf.constant_initializer(0.001))
             b_out= tf.get_variable("g_b_out",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))
             w_z=tf.get_variable("g_w_z",shape=[self.z_dim,self.n_inputs],initializer=tf.random_normal_initializer())
             b_z=tf.get_variable("g_b_z",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))
             
-            
-            X = tf.reshape(X, [-1, self.n_inputs])
-            Delta=tf.reshape(Delta,[-1,self.n_inputs])
-            
+            X = tf.reshape(X, [-1, self.n_inputs])  #Input reshaped to match the dimensionality for further operations.
+            Delta=tf.reshape(Delta,[-1,self.n_inputs])  #Time gap variable reshaped to match the dimensionality for further operations.
+
+            # These lines produce the decay factor which models the effect of time gaps between consecutive observations in the time series.
             rth= tf.matmul(Delta, wr_h)+br_h
-            rth=math_ops.exp(-tf.maximum(0.0,rth))
+            rth=math_ops.exp(-tf.maximum(0.0,rth))  # Ensures non-negative decay.
             
-            X=tf.concat([X,rth],1)
+            X=tf.concat([X,rth],1)  # Decay factor is concatenated with the original input.
             
-            X_in = tf.reshape(X, [-1, self.n_steps, self.n_inputs+self.n_hidden_units])
+            X_in = tf.reshape(X, [-1, self.n_steps, self.n_inputs+self.n_hidden_units]) #The previous combined matrix is reshaped to fit the format for the RNN.
          
-            init_state = self.grud_cell_g.zero_state(self.batch_size, dtype=tf.float32) # 初始化全零 state
+            init_state = self.grud_cell_g.zero_state(self.batch_size, dtype=tf.float32) # initialize with an all-zero state
+            #runs the Gated Recurrent Unit over the input and return outputs for each time step as well as the final hidden state.
             outputs, final_state = tf.nn.dynamic_rnn(self.grud_cell_g, X_in, \
                                 initial_state=init_state,\
                                 sequence_length=X_lengths,
                                 time_major=False)
             #outputs: batch_size*n_steps*n_hiddensize
-            outputs=tf.reshape(outputs,[-1,self.n_hidden_units])
+            #The output is reshaped and the final predictions are produced.
+            outputs=tf.reshape(outputs,[-1,self.n_hidden_units])  #The RNN output is reshaped and the final predictions are produced and then reshaped to match the original input.
             out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out
             out_predict=tf.reshape(out_predict,[-1,self.n_steps,self.n_inputs])
-            return out_predict
+            return out_predict #Returns the predictions for the missing values.
 
-
+    #Implements the discriminator for the WGAN    
     def discriminator(self, X, M, DeltaPre, Lastvalues ,DeltaSub ,SubValues , Mean,  X_lengths,Keep_prob, is_training=True, reuse=False, isTdata=True):
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
         # Architecture : (64)4c2s-(128)4c2s_BL-FC1024_BL-FC1_S
-        with tf.variable_scope("d_iscriminator", reuse=reuse):
-            
+        with tf.variable_scope("d_iscriminator", reuse=reuse):  # Defines scope of the the variables. Ensures all variables created within scope are tied to the generators model. 
+
+            # wr_h and w_out define the weights for the input data and the final output predictions.  w_out is the weight matrix for the output predictions.
+            # br_h and b_out initialize the biases for both the hidden and output layers. b_out is the bias matrix for the output predictions.
             wr_h=tf.get_variable("d_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer())
             w_out= tf.get_variable("d_w_out",shape=[self.n_hidden_units, 1],initializer=tf.random_normal_initializer())
             br_h= tf.get_variable("d_br_h",shape=[self.n_hidden_units, ],initializer=tf.constant_initializer(0.001))
             b_out= tf.get_variable("d_b_out",shape=[1, ],initializer=tf.constant_initializer(0.001))
           
            
-            M=tf.reshape(M,[-1,self.n_inputs])
-            X = tf.reshape(X, [-1, self.n_inputs])
-            DeltaPre=tf.reshape(DeltaPre,[-1,self.n_inputs])
+            M=tf.reshape(M,[-1,self.n_inputs])  #Mask matrix reshaped to match the dimensionality for further operations.
+            X = tf.reshape(X, [-1, self.n_inputs])  #Input reshaped to match the dimensionality for further operations.
+            DeltaPre=tf.reshape(DeltaPre,[-1,self.n_inputs])  #Time gap variable reshaped to match the dimensionality for further operations.
            
-            
+            # These lines produce the decay factor which models the effect of time gaps between consecutive observations in the time series.
             rth= tf.matmul(DeltaPre, wr_h)+br_h
             rth=math_ops.exp(-tf.maximum(0.0,rth))
+            
             # add noise
             #X=X+np.random.standard_normal(size=(self.batch_size*self.n_steps, self.n_inputs))/100 
-            X=tf.concat([X,rth],1)
+            X=tf.concat([X,rth],1)  # Decay factor is concatenated with the original input.
               
-            X_in = tf.reshape(X, [self.batch_size, self.n_steps , self.n_inputs+self.n_hidden_units])
+            X_in = tf.reshape(X, [self.batch_size, self.n_steps , self.n_inputs+self.n_hidden_units])  #The previous combined matrix is reshaped to fit the format for the RNN.
             
-            init_state = self.grud_cell_d.zero_state(self.batch_size, dtype=tf.float32) # 初始化全零 state
+            init_state = self.grud_cell_d.zero_state(self.batch_size, dtype=tf.float32) # initialize with an all-zero state
+
+            #runs the Gated Recurrent Unit over the input and return outputs for each time step as well as the final hidden state.
             outputs, final_state = tf.nn.dynamic_rnn(self.grud_cell_d, X_in, \
                                 initial_state=init_state,\
                                 sequence_length=X_lengths,
                                 time_major=False)
          
             # final_state:batch_size*n_hiddensize
-            # 不能用最后一个，应该用第length个  之前用了最后一个，所以输出无论如何都是b_out
-            out_logit=tf.matmul(tf.nn.dropout(final_state,Keep_prob), w_out) + b_out
-            out =tf.nn.sigmoid(out_logit)    #选取最后一个 output
-            return out,out_logit
-
+            # Cannot use the last one, should use the length one. Previously, the last one was used, so the output was always b_out regardless."
+            out_logit=tf.matmul(tf.nn.dropout(final_state,Keep_prob), w_out) + b_out  #Produces a single value that indicates whether the input data is real or fake.
+            out =tf.nn.sigmoid(out_logit)    # Select the last output.  Produces a probability score between 0 and 1.  Values closer to 1 indicate real data.
+            return out,out_logit  #Returns the probability for being real (out) and the indicator for whether the input data is real or fake.
+            
+    # Implements the generator
     def generator(self, z, Keep_prob, is_training=True, reuse=False):
         # x,delta,n_steps
         # z :[self.batch_size, self.z_dim]
-        # first feed noize in rnn, then feed the previous output into next input
-        # or we can feed noize and previous output into next input in future version
-        with tf.variable_scope("g_enerator", reuse=reuse):
-            #gennerate 
-            
+        # first feed noise in rnn, then feed the previous output into next input
+        # or we can feed noise and previous output into next input in future version
+        with tf.variable_scope("g_enerator", reuse=reuse):  # Defines scope of the the variables. Ensures all variables created within scope are tied to the generators model.
+            #generate 
+
+            # wr_h and w_out define the weights for the input data and the final output predictions.  w_out is the weight matrix for the output predictions.
+            # br_h and b_out initialize the biases for both the hidden and output layers. b_out is the bias matrix for the output predictions.
+            # w_z and b_z are weights for mapping the noise vector z to the input space.
             wr_h=tf.get_variable("g_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer())
             w_out= tf.get_variable("g_w_out",shape=[self.n_hidden_units, self.n_inputs],initializer=tf.random_normal_initializer())
             br_h= tf.get_variable("g_br_h",shape=[self.n_hidden_units, ],initializer=tf.constant_initializer(0.001))
-            b_out= tf.get_variable("g_b_out",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))
+            b_out= tf.get_variable("g_b_out",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))            
             w_z=tf.get_variable("g_w_z",shape=[self.z_dim,self.n_inputs],initializer=tf.random_normal_initializer())
             b_z=tf.get_variable("g_b_z",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))
             
             #self.times=tf.reshape(self.times,[self.batch_size,self.n_steps,self.n_inputs])
             #change z's dimension
             # batch_size*z_dim-->batch_size*n_inputs
-            x=tf.matmul(z,w_z)+b_z
-            x=tf.reshape(x,[-1,self.n_inputs])
-            delta_zero=tf.constant(0.0,shape=[self.batch_size,self.n_inputs])
+            x=tf.matmul(z,w_z)+b_z  # These lines map the noise vector z and creates the startin input for the generator.
+            x=tf.reshape(x,[-1,self.n_inputs]) 
+            delta_zero=tf.constant(0.0,shape=[self.batch_size,self.n_inputs]) 
             #delta_normal=tf.constant(48.0*60.0/self.gen_length,shape=[self.batch_size,self.n_inputs])
             #delta:[batch_size,1,n_inputs]
             
 
             # combine X_in
+            # These lines produce the decay factor which models the effect of time gaps between consecutive observations in the time series.
             rth= tf.matmul(delta_zero, wr_h)+br_h
             rth=math_ops.exp(-tf.maximum(0.0,rth))
-            x=tf.concat([x,rth],1)
             
+            x=tf.concat([x,rth],1)            
             X_in = tf.reshape(x, [-1, 1, self.n_inputs+self.n_hidden_units])
             
             init_state = self.grud_cell_g.zero_state(self.batch_size, dtype=tf.float32) # 初始化全零 state
