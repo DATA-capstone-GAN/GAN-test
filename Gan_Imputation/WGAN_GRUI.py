@@ -28,36 +28,36 @@ class WGAN(object):
     #All args. calls are taking the default value passed in the Physionet_main.py file or whatever modification is passed via the command line when it is executed. 
     def __init__(self, sess, args, datasets):
         self.sess = sess 
-        self.isbatch_normal=args.isBatch_normal
-        self.isNormal=args.isNormal
-        self.checkpoint_dir = args.checkpoint_dir
-        self.result_dir = args.result_dir
-        self.log_dir = args.log_dir
-        self.dataset_name=args.dataset_name
-        self.run_type=args.run_type
-        self.lr = args.lr                 
-        self.epoch = args.epoch     
-        self.batch_size = args.batch_size
-        self.n_inputs = args.n_inputs                 # This is the number of inputs/features the network will accept (data input size). MNIST data input (img shape: 28*28)
+        self.isbatch_normal=args.isBatch_normal       # Determine wheter to apply batch normalization.
+        self.isNormal=args.isNormal                   # Determine wheter to apply batch normalization.
+        self.checkpoint_dir = args.checkpoint_dir     # Directory to save checkpoint.
+        self.result_dir = args.result_dir             # Directory to save results.
+        self.log_dir = args.log_dir                   # Directory to save log.
+        self.dataset_name=args.dataset_name           # Dataset name
+        self.run_type=args.run_type                   # Type of run (training/test)
+        self.lr = args.lr                             # Learning Rate
+        self.epoch = args.epoch                       # Number of epoch (training evolutions, how many times the entire dataset is processed).
+        self.batch_size = args.batch_size             # Training batch size (the number of data points that will be trained).
+        self.n_inputs = args.n_inputs                 # This is the number of inputs/features the network will accept (data input size). MNIST data input (img shape: 28*28).
         self.n_steps = datasets.maxLength             # This represents the time steps used in the time series.
         self.n_hidden_units = args.n_hidden_units     # This is the number of neurons in hidden layer.
         self.n_classes = args.n_classes               # This is the number of output classes.  MNIST classes (0-9 digits).
         self.gpus=args.gpus                           # This identifies which GPUs are available for use during training.
-        self.run_type=args.run_type
-        self.result_path=args.result_path
-        self.model_path=args.model_path
-        self.pretrain_epoch=args.pretrain_epoch
-        self.impute_iter=args.impute_iter
-        self.isSlicing=args.isSlicing
-        self.g_loss_lambda=args.g_loss_lambda
+        self.run_type=args.run_type                   # Type of run (training/test).
+        self.result_path=args.result_path             # Specifies the directory where the results will be saved.
+        self.model_path=args.model_path               # This is the path to the location where trained models or checkpoints will be stored, allowing for model saving and loading.
+        self.pretrain_epoch=args.pretrain_epoch       # Defines how many epochs the model will be pre-trained.
+        self.impute_iter=args.impute_iter             # Defines how many times the imputation process is repeated.
+        self.isSlicing=args.isSlicing                 # Determines whether the data should be sliced into smaller sections for processing (used for performance management).
+        self.g_loss_lambda=args.g_loss_lambda         # Regularization parameter for the generator loss.
         
-        self.datasets=datasets          # This stores the dataset object for accessing the training data.
-        self.z_dim = args.z_dim         # dimension of noise-vector
-        self.gen_length=args.gen_length
+        self.datasets=datasets                        # This stores the dataset object for accessing the training data.
+        self.z_dim = args.z_dim                       # Dimension of noise-vector (noise vector = what the generator uses to create the fake data)
+        self.gen_length=args.gen_length               # Designates how many samples the generator should produce each sequence (i.e. weekly time series should have gen_length == 7)
         
         # WGAN_GP parameter
-        self.lambd = 0.25       # WGAN gradient penalty.  The higher value, the more stable, but the slower convergence.
-        self.disc_iters = args.disc_iters     # The number of discriminator iterations for one-step of generator.
+        self.lambd = 0.25                             # WGAN gradient penalty.  The higher value, the more stable, but the slower convergence.
+        self.disc_iters = args.disc_iters             # The number of discriminator iterations for one-step of generator.
 
         # train
         # This includes a TensorFlow version check and implements different mygru_cells from mygru_cell.py depending on the TF version.
@@ -402,7 +402,8 @@ class WGAN(object):
         self.g_sum = g_loss_sum
         self.g_pretrain_sum=tf.summary.merge([g_pretrain_loss_sum])
         self.d_sum = tf.summary.merge([d_loss_real_sum,d_loss_fake_sum, d_loss_sum])
-        
+
+    #learning_rate = controls step size for updating weights     
     def optim(self,learning_rate,beta,loss,var):
         optimizer = tf.train.AdamOptimizer(learning_rate, beta1=beta)
         grads = optimizer.compute_gradients(loss,var_list=var)
