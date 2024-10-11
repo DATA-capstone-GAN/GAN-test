@@ -17,7 +17,7 @@ from tensorflow.contrib.rnn import RNNCell
 import tensorflow as tf
 
 
-if "1.5" in tf.__version__ or "1.7" in tf.__version__:                                    # Check tensorflow version.
+if "1.5" in tf.__version__ or "1.7" in tf.__version__:                                    # Check tensorflow version 1.5 or 1.7.
     from tensorflow.python.ops.rnn_cell_impl import LayerRNNCell                          # Used for creating custom Reccurrent Neural Network (RNN) cells.
     from tensorflow.python.layers import base as base_layer                               # Used to build foundational functionality for neural network layers.
     from tensorflow.python.ops import nn_ops                                              # Contains functions for use with neural networks, i.e. activation, normalization, and dropout.
@@ -44,50 +44,51 @@ if "1.5" in tf.__version__ or "1.7" in tf.__version__:                          
       def __init__(self,
                    num_units,                        # The number of hidden units in the RNN.
                    activation=None,                  # Activation function for RNN (default = tanh)
-                   reuse=None,                       # Define whether to reuse variables or not.
-                   kernel_initializer=None,          # Initialize for the wieght matrices.
-                   bias_initializer=None,            # Inialize the bias term.
+                   reuse=None,                       # Defines whether to reuse variables or not.
+                   kernel_initializer=None,          # Parameter for the wieght matrices.
+                   bias_initializer=None,            # Parameter the bias term.
                    name=None):                       # Layername (layers with the same name can share variables)
+
+        # Call GRUCell for TF version 1.5               
         super(MyGRUCell15, self).__init__(_reuse=reuse, name=name)
     
         # Inputs must be 2-dimensional.
-        self.input_spec = base_layer.InputSpec(ndim=2)
-    
-        self._num_units = num_units
-        self._activation = activation or math_ops.tanh
-        self._kernel_initializer = kernel_initializer
-        self._bias_initializer = bias_initializer
+        self.input_spec = base_layer.InputSpec(ndim=2)                  # Defines input cells as 2 dimensional (Normal for RNN).    
+        self._num_units = num_units                                     # Establishes number of neruons in the RNN.
+        self._activation = activation or math_ops.tanh                  # Establishes the activation function (tanh by default)
+        self._kernel_initializer = kernel_initializer                   # Initalization of the weight matrix.
+        self._bias_initializer = bias_initializer                       # Initialization of the bias term.
     
       @property
-      def state_size(self):
+      def state_size(self):                   # Defines the size of the internal state of the GRU cell. 
         return self._num_units
     
       @property
-      def output_size(self):
+      def output_size(self):                  # Defines the size of the output produced by the GRU cell.
         return self._num_units
     
       def build(self, inputs_shape):
-        if inputs_shape[1].value is None:
+        if inputs_shape[1].value is None:                                                # Checks if the input shape is correct and raises error if it is not.
           raise ValueError("Expected inputs.shape[-1] to be known, saw shape: %s"
                            % inputs_shape)
     
-        input_depth = inputs_shape[1].value-self._num_units
-        self._gate_kernel = self.add_variable(
+        input_depth = inputs_shape[1].value-self._num_units                              # Calculates the number of input features (dimensions) that will be fed to the GRU.
+        self._gate_kernel = self.add_variable(                                           # Creates the kernel (weights) for the gates in the GRU cell.
             "gates/%s" % _WEIGHTS_VARIABLE_NAME,
             shape=[input_depth + self._num_units, 2 * self._num_units],
             initializer=self._kernel_initializer)
-        self._gate_bias = self.add_variable(
+        self._gate_bias = self.add_variable(                                             # Creates the bias for the gate calculations.
             "gates/%s" % _BIAS_VARIABLE_NAME,
             shape=[2 * self._num_units],
             initializer=(
                 self._bias_initializer
                 if self._bias_initializer is not None
                 else init_ops.constant_initializer(1.0, dtype=self.dtype)))
-        self._candidate_kernel = self.add_variable(
+        self._candidate_kernel = self.add_variable(                                      # Creates the kernel (weights) for the candidate hidden state.
             "candidate/%s" % _WEIGHTS_VARIABLE_NAME,
             shape=[input_depth + self._num_units, self._num_units],
             initializer=self._kernel_initializer)
-        self._candidate_bias = self.add_variable(
+        self._candidate_bias = self.add_variable(                                        # Creates the bias for the candidate hidden state calculations.
             "candidate/%s" % _BIAS_VARIABLE_NAME,
             shape=[self._num_units],
             initializer=(
@@ -95,41 +96,41 @@ if "1.5" in tf.__version__ or "1.7" in tf.__version__:                          
                 if self._bias_initializer is not None
                 else init_ops.zeros_initializer(dtype=self.dtype)))
     
-        self.built = True
+        self.built = True                                                         # Indicates that the build process is complete.
     
-      def call(self, inputs, state):
+      def call(self, inputs, state):                                              # Implements the forward pass of the GRU cell. Processing input data and previous hidden cell.
         """Gated recurrent unit (GRU) with nunits cells."""
-        totalLength=inputs.get_shape().as_list()[1]
-        inputs_=inputs[:,0:totalLength-self._num_units]
-        rth=inputs[:,totalLength-self._num_units:]
-        inputs=inputs_
-        state=math_ops.multiply(rth,state)
+        totalLength=inputs.get_shape().as_list()[1]                               # Retrieves the number of features of the input tensor.
+        inputs_=inputs[:,0:totalLength-self._num_units]                           # Separates the actual input features from the reset gates.
+        rth=inputs[:,totalLength-self._num_units:]                                # Extracts the reset gate values from the input, used to update previous state.
+        inputs=inputs_                                                            # Updates the inputs variable to reflect only the relevant input features.
+        state=math_ops.multiply(rth,state)                                        # Determine how much of the previous state to keep. A value of 0 will reset the state, a value of 1 will keep it unchanged.
         
-        gate_inputs = math_ops.matmul(
+        gate_inputs = math_ops.matmul(                                            # Calculates the input to the gates of the GRU cell.
             array_ops.concat([inputs, state], 1), self._gate_kernel)
-        gate_inputs = nn_ops.bias_add(gate_inputs, self._gate_bias)
+        gate_inputs = nn_ops.bias_add(gate_inputs, self._gate_bias)               # Adds the bias to the gate inputs.
     
-        value = math_ops.sigmoid(gate_inputs)
-        r, u = array_ops.split(value=value, num_or_size_splits=2, axis=1)
+        value = math_ops.sigmoid(gate_inputs)                                     # Applies the sigmoid activation function to the gate inputs.
+        r, u = array_ops.split(value=value, num_or_size_splits=2, axis=1)         # Splits the value tensor into two parts: the reset gate r and the update gate u.
     
-        r_state = r * state
+        r_state = r * state                                                       # Scales previous state by the reset gate r, allows for selective forgetting of the previous information.
     
-        candidate = math_ops.matmul(
+        candidate = math_ops.matmul(                                              # Calculates the candidate hidden state.
             array_ops.concat([inputs, r_state], 1), self._candidate_kernel)
-        candidate = nn_ops.bias_add(candidate, self._candidate_bias)
+        candidate = nn_ops.bias_add(candidate, self._candidate_bias)              # Adds the bias for the candidate state.
     
-        c = self._activation(candidate)
-        new_h = u * state + (1 - u) * c
-        return new_h, new_h
+        c = self._activation(candidate)                                           # Applies the activation function to the candidate hidden state.
+        new_h = u * state + (1 - u) * c                                           # Computes the new hidden state of the GRU cell.
+        return new_h, new_h                                                       # Returns the updated hidden state for the next time step.
 
-
+# TF version check and imports appropriate Linear Transformation function.
 elif "1.4" in tf.__version__:
     from tensorflow.python.ops.rnn_cell_impl import _Linear
 elif "1.2" in tf.__version__:
     from tensorflow.python.ops.rnn_cell_impl import _linear
 
 
-
+# Call GRUCell for TF version 1.4
 class MyGRUCell4(RNNCell):
   """Gated Recurrent Unit cell (cf. http://arxiv.org/abs/1406.1078).
 
@@ -205,7 +206,7 @@ class MyGRUCell4(RNNCell):
     new_h = u * state + (1 - u) * c
     return new_h, new_h
 
-
+# Call GRUCell for TF version ???
 class MyGRUCell2(RNNCell):
   """Gated Recurrent Unit cell (cf. http://arxiv.org/abs/1406.1078).
 
