@@ -15,15 +15,17 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.contrib.rnn import RNNCell
 import tensorflow as tf
-if "1.5" in tf.__version__ or "1.7" in tf.__version__:
-    from tensorflow.python.ops.rnn_cell_impl import LayerRNNCell
-    from tensorflow.python.layers import base as base_layer
-    from tensorflow.python.ops import nn_ops
-    _BIAS_VARIABLE_NAME = "bias"
-    _WEIGHTS_VARIABLE_NAME = "kernel"
+
+
+if "1.5" in tf.__version__ or "1.7" in tf.__version__:                                    # Check tensorflow version.
+    from tensorflow.python.ops.rnn_cell_impl import LayerRNNCell                          # Used for creating custom Reccurrent Neural Network (RNN) cells.
+    from tensorflow.python.layers import base as base_layer                               # Used to build foundational functionality for neural network layers.
+    from tensorflow.python.ops import nn_ops                                              # Contains functions for use with neural networks, i.e. activation, normalization, and dropout.
+    _BIAS_VARIABLE_NAME = "bias"                                                          # Create constant for use with bias.
+    _WEIGHTS_VARIABLE_NAME = "kernel"                                                     # Create constant for use with weights.
     
     class MyGRUCell15(LayerRNNCell):
-    #todo: 直接改就行了，已经试验过了，不影响dynamic_rnn的调用
+    # todo: Just change it directly; I've tested it, and it doesn't affect the calling of dynamic_rnn. (original comment)
       """Gated Recurrent Unit cell (cf. http://arxiv.org/abs/1406.1078).
     
       Args:
@@ -40,12 +42,12 @@ if "1.5" in tf.__version__ or "1.7" in tf.__version__:
           cases.
       """
       def __init__(self,
-                   num_units,
-                   activation=None,
-                   reuse=None,
-                   kernel_initializer=None,
-                   bias_initializer=None,
-                   name=None):
+                   num_units,                        # The number of hidden units in the RNN.
+                   activation=None,                  # Activation function for RNN (default = tanh)
+                   reuse=None,                       # Define whether to reuse variables or not.
+                   kernel_initializer=None,          # Initialize for the wieght matrices.
+                   bias_initializer=None,            # Inialize the bias term.
+                   name=None):                       # Layername (layers with the same name can share variables)
         super(MyGRUCell15, self).__init__(_reuse=reuse, name=name)
     
         # Inputs must be 2-dimensional.
