@@ -83,45 +83,47 @@ class WGAN(object):
     # X = input, M = mask matrix(identifies which values are missing and which are present), Delta = time gap
     def pretrainG(self, X, M, Delta,  Mean, Lastvalues, X_lengths, Keep_prob, is_training=True, reuse=False):
         
-        with tf.variable_scope("g_enerator", reuse=reuse):  # Defines scope of the the variables. Ensures all variables created within scope are tied to the generators model.  
+        with tf.variable_scope("g_enerator", reuse=reuse):                                     # Defines scope of the the variables. Ensures all variables created within scope are tied to the generators model.  
             
             """
             the rnn cell's variable scope is defined by tensorflow,
             if we want to update rnn cell's weights, the variable scope must contains 'g_' or 'd_'            
             """
-            # These lines define the weights for the input data and the final output predictions.  w_out is the weight matrix for the output predictions.
-            wr_h=tf.get_variable("g_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer())
-            w_out= tf.get_variable("g_w_out",shape=[self.n_hidden_units, self.n_inputs],initializer=tf.random_normal_initializer())
+            wr_h=tf.get_variable("g_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer())       # Defines the weight matrix for the input data.
+            w_out= tf.get_variable("g_w_out",shape=[self.n_hidden_units, self.n_inputs],initializer=tf.random_normal_initializer())   # Defines the weight matrix for the output predictions.
 
             # These lines initialize the biases for both the hidden and output layers.
-            br_h= tf.get_variable("g_br_h",shape=[self.n_hidden_units, ],initializer=tf.constant_initializer(0.001))
-            b_out= tf.get_variable("g_b_out",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))
-            w_z=tf.get_variable("g_w_z",shape=[self.z_dim,self.n_inputs],initializer=tf.random_normal_initializer())
-            b_z=tf.get_variable("g_b_z",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))
+            br_h= tf.get_variable("g_br_h",shape=[self.n_hidden_units, ],initializer=tf.constant_initializer(0.001))                  # Initialize the bias for the input data.
+            b_out= tf.get_variable("g_b_out",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))                      # Initialize the bias for the output predicitons.
             
-            X = tf.reshape(X, [-1, self.n_inputs])  #Input reshaped to match the dimensionality for further operations.
-            Delta=tf.reshape(Delta,[-1,self.n_inputs])  #Time gap variable reshaped to match the dimensionality for further operations.
+            w_z=tf.get_variable("g_w_z",shape=[self.z_dim,self.n_inputs],initializer=tf.random_normal_initializer())                  # Initialize the weight matrix for the generator.
+            b_z=tf.get_variable("g_b_z",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))                           # Initialize the bias for the generator.
+            
+            X = tf.reshape(X, [-1, self.n_inputs])                                                                                    # Input reshaped to match the dimensionality for further operations.
+            Delta=tf.reshape(Delta,[-1,self.n_inputs])                                                                                # Time gap variable reshape to match the dimensionality 
+                                                                                                                                      # for further operations.
 
-            # These lines produce the decay factor which models the effect of time gaps between consecutive observations in the time series.
-            rth= tf.matmul(Delta, wr_h)+br_h
-            rth=math_ops.exp(-tf.maximum(0.0,rth))  # Ensures non-negative decay.
+            rth= tf.matmul(Delta, wr_h)+br_h                                                # Calculate the decay factor based on time gap and input weights.
+            rth=math_ops.exp(-tf.maximum(0.0,rth))                                          # Applies transformation to model the effecto fo time gaps between consecuitive observations.
             
-            X=tf.concat([X,rth],1)  # Decay factor is concatenated with the original input.
+            X=tf.concat([X,rth],1)                                                          # Decay factor is concatenated with the original input.
             
-            X_in = tf.reshape(X, [-1, self.n_steps, self.n_inputs+self.n_hidden_units]) #The previous combined matrix is reshaped to fit the format for the RNN.
+            X_in = tf.reshape(X, [-1, self.n_steps, self.n_inputs+self.n_hidden_units])     # The previous combined matrix is reshaped to fit the format for the RNN.
          
-            init_state = self.grud_cell_g.zero_state(self.batch_size, dtype=tf.float32) # initialize with an all-zero state
-            #runs the Gated Recurrent Unit over the input and return outputs for each time step as well as the final hidden state.
+            init_state = self.grud_cell_g.zero_state(self.batch_size, dtype=tf.float32)     # initialize hidden cell of Gated Reccurent Unit GRU with an all-zero state
+            
+            # Runs the RNN using the Gated Recurrent Unit (GRU) over the input and return outputs for each time step as well as the final hidden state.
+            # outpus stores the output of the RNN at each step, final_state stores the last hidden state.
             outputs, final_state = tf.nn.dynamic_rnn(self.grud_cell_g, X_in, \
                                 initial_state=init_state,\
                                 sequence_length=X_lengths,
                                 time_major=False)
             #outputs: batch_size*n_steps*n_hiddensize
             #The output is reshaped and the final predictions are produced.
-            outputs=tf.reshape(outputs,[-1,self.n_hidden_units])  #The RNN output is reshaped and the final predictions are produced and then reshaped to match the original input.
-            out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out
-            out_predict=tf.reshape(out_predict,[-1,self.n_steps,self.n_inputs])
-            return out_predict #Returns the predictions for the missing values.
+            outputs=tf.reshape(outputs,[-1,self.n_hidden_units])                            # The RNN output is reshaped and the final predictions are produced and then reshaped to match the original input.
+            out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out          # Generates predictions based on the reshaped RNN outputs. Dropout function helps prevent overfitting.
+            out_predict=tf.reshape(out_predict,[-1,self.n_steps,self.n_inputs])             # Reshapes output predictions to 3D tensor.
+            return out_predict                                                              # Returns the predictions for the missing values.
 
     #Implements the discriminator for the WGAN    
     def discriminator(self, X, M, DeltaPre, Lastvalues ,DeltaSub ,SubValues , Mean,  X_lengths,Keep_prob, is_training=True, reuse=False, isTdata=True):
