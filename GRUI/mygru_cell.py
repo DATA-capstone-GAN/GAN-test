@@ -130,7 +130,7 @@ elif "1.2" in tf.__version__:
     from tensorflow.python.ops.rnn_cell_impl import _linear
 
 
-# Call GRUCell for TF version 1.4
+# Call GRUCell for TF version 1.4. Uses RNNCell instead of LayerRNNCell.
 class MyGRUCell4(RNNCell):
   """Gated Recurrent Unit cell (cf. http://arxiv.org/abs/1406.1078).
 
@@ -150,7 +150,7 @@ class MyGRUCell4(RNNCell):
                activation=None,                                                # Activation function for RNN (default = tanh)
                reuse=None,                                                     # Defines whether to reuse variables or not.
                kernel_initializer=None,                                        # Parameter for the wieght matrices.
-               bias_initializer=None):                                         # Parameter the bias term.
+               bias_initializer=None):                                         # Parameter for the bias term.
     super(MyGRUCell4, self).__init__(_reuse=reuse)
     self._num_units = num_units                                                # Establishes number of neruons in the RNN.
     self._activation = activation or math_ops.tanh                             # Establishes the activation function (tanh by default)
@@ -173,14 +173,14 @@ class MyGRUCell4(RNNCell):
     # rt's length is self._num_units
     # state = rt * older state 
     # input = first 2 part
-    totalLength=inputs.get_shape().as_list()[1]
-    inputs_=inputs[:,0:totalLength-self._num_units]
-    rth=inputs[:,totalLength-self._num_units:]
-    inputs=inputs_
-    state=math_ops.multiply(rth,state)
-    if self._gate_linear is None:
-      bias_ones = self._bias_initializer
-      if self._bias_initializer is None:
+    totalLength=inputs.get_shape().as_list()[1]                                # Determines the total number of features in the input tensor.
+    inputs_=inputs[:,0:totalLength-self._num_units]                            # Separates the actual input features from the reset gate values.
+    rth=inputs[:,totalLength-self._num_units:]                                 # Contains the values for the reset gate, used in state updating.
+    inputs=inputs_                                                             # Updates the inputs variable to reflect only the relevant input features.
+    state=math_ops.multiply(rth,state)                                         # Updates the previous state by multiplying it with the reset gate. Allows the model to forget parts of the previous state.
+    if self._gate_linear is None:                                              # Check if linear transformation has been completed on the gate.
+      bias_ones = self._bias_initializer                                       # Sets up the bias term in the GRU Cell.
+      if self._bias_initializer is None:                                       # Check if bias initializer is initialized, defaults to a constant initializer with a value of 1 if not.
         bias_ones = init_ops.constant_initializer(1.0, dtype=inputs.dtype)
       with vs.variable_scope("gates"):  # Reset gate and update gate.
         self._gate_linear = _Linear(
@@ -190,21 +190,21 @@ class MyGRUCell4(RNNCell):
             bias_initializer=bias_ones,
             kernel_initializer=self._kernel_initializer)
 
-    value = math_ops.sigmoid(self._gate_linear([inputs, state]))
-    r, u = array_ops.split(value=value, num_or_size_splits=2, axis=1)
+    value = math_ops.sigmoid(self._gate_linear([inputs, state]))               # Determines how much of the previous state to keep and how much of the new input to incorporate.
+    r, u = array_ops.split(value=value, num_or_size_splits=2, axis=1)          # Affects how much of the past information to discard.  Controls how much of the new candidate hidden state to incorporate.
 
-    r_state = r * state
+    r_state = r * state                                                        # Enables the GRU to selectively forget parts of the previous hidden state. 
     if self._candidate_linear is None:
       with vs.variable_scope("candidate"):
         self._candidate_linear = _Linear(
-            [inputs, r_state],
-            self._num_units,
-            True,
-            bias_initializer=self._bias_initializer,
-            kernel_initializer=self._kernel_initializer)
-    c = self._activation(self._candidate_linear([inputs, r_state]))
-    new_h = u * state + (1 - u) * c
-    return new_h, new_h
+            [inputs, r_state],                                                 # inputs - actual input features for the current time step. r_state - modified previous state of the GRU, scaled by the reset gate. Allows the GRU to forget parts of the previous state based on the reset gate value.
+            self._num_units,                                                   # Specifies the number of output units (or neurons) for this linear transformation.
+            True,                                                              # Indicates whether to include a bias term in this linear transformation.
+            bias_initializer=self._bias_initializer,                           # Biases added to the linear transformations to allow the model to fit the training data more flexibly.
+            kernel_initializer=self._kernel_initializer)                       # Control how much influence the inputs have on the output of each neuron in the layer.
+    c = self._activation(self._candidate_linear([inputs, r_state]))            # Applies the activation function to the candidate hidden state.
+    new_h = u * state + (1 - u) * c                                            # Computes the new hidden state of the GRU cell.
+    return new_h, new_h                                                        # Returns the updated hidden state for the next time step.
 
 # Call GRUCell for TF version 1.2
 class MyGRUCell2(RNNCell):
@@ -222,25 +222,25 @@ class MyGRUCell2(RNNCell):
   """
 
   def __init__(self,
-               num_units,
-               activation=None,
-               reuse=None,
-               kernel_initializer=None,
-               bias_initializer=None):
+               num_units,                                                      # The number of hidden units in the RNN.
+               activation=None,                                                # Activation function for RNN (default = tanh).
+               reuse=None,                                                     # Defines whether to reuse variables or not.
+               kernel_initializer=None,                                        # Parameter for the wieght matrices.
+               bias_initializer=None):                                         # Parameter for the bias term.
     super(MyGRUCell2, self).__init__(_reuse=reuse)
-    self._num_units = num_units
-    self._activation = activation or math_ops.tanh
-    self._kernel_initializer = kernel_initializer
-    self._bias_initializer = bias_initializer
-    self._gate_linear = None
-    self._candidate_linear = None
+    self._num_units = num_units                                                # Establishes number of neruons in the RNN.
+    self._activation = activation or math_ops.tanh                             # Establishes the activation function (tanh by default).
+    self._kernel_initializer = kernel_initializer                              # Initalization of the weight matrix.
+    self._bias_initializer = bias_initializer                                  # Initalization of the bias term.
+    self._gate_linear = None                                                   # Hold the linear transformation (weight and bias) used for calculating the gate values. Control the flow of information.
+    self._candidate_linear = None                                              # Responsible for the linear transformation for computing the candidate activation values, part of the GRU's mechanism for updating the hidden state.
 
   @property
-  def state_size(self):
+  def state_size(self):                                                        # Defines the size of the internal state of the GRU cell.
     return self._num_units
 
   @property
-  def output_size(self):
+  def output_size(self):                                                       # Defines the size of the output produced by the GRU cell.
     return self._num_units
 
   def call(self, inputs, state):
@@ -249,24 +249,24 @@ class MyGRUCell2(RNNCell):
     # rt's length is self._num_units
     # state = rt * older state 
     # input = first 2 part
-    totalLength=inputs.get_shape().as_list()[1]
-    inputs_=inputs[:,0:totalLength-self._num_units]
-    rth=inputs[:,totalLength-self._num_units:]
-    inputs=inputs_
-    state=math_ops.multiply(rth,state)
-    with vs.variable_scope("gates"):  # Reset gate and update gate.
+    totalLength=inputs.get_shape().as_list()[1]                                # Determines the total number of features in the input tensor.
+    inputs_=inputs[:,0:totalLength-self._num_units]                            # Separates the actual input features from the reset gate values.
+    rth=inputs[:,totalLength-self._num_units:]                                 # Contains the values for the reset gate, used in state updating.
+    inputs=inputs_                                                             # Updates the inputs variable to reflect only the relevant input features.
+    state=math_ops.multiply(rth,state)                                         # Updates the previous state by multiplying it with the reset gate. Allows the model to forget parts of the previous state.
+    with vs.variable_scope("gates"):                                           # Reset gate and update gate. Creates another variable scope specifically for calculating the candidate hidden state.
       # We start with bias of 1.0 to not reset and not update.
-      bias_ones = self._bias_initializer
-      if self._bias_initializer is None:
+      bias_ones = self._bias_initializer                                       # Sets up the bias term in the GRU Cell.
+      if self._bias_initializer is None:                                       # Check if bias initializer is initialized, defaults to a constant initializer with a value of 1 if not.
         dtype = [a.dtype for a in [inputs, state]][0]
         bias_ones = init_ops.constant_initializer(1.0, dtype=dtype)
-      value = math_ops.sigmoid(
+      value = math_ops.sigmoid(                                                #  Determines how much of the previous state to keep and how much of the new candidate state to incorporate.
           _linear([inputs, state], 2 * self._num_units, True, bias_ones,
                   self._kernel_initializer))
-      r, u = array_ops.split(value=value, num_or_size_splits=2, axis=1)
+      r, u = array_ops.split(value=value, num_or_size_splits=2, axis=1)         # Affects how much of the past information to discard.  Controls how much of the new candidate hidden state to incorporate.
     with vs.variable_scope("candidate"):
-      c = self._activation(
+      c = self._activation(                                                     # Applies the activation function to the candidate hidden state.
           _linear([inputs, r * state], self._num_units, True,
                   self._bias_initializer, self._kernel_initializer))
-    new_h = u * state + (1 - u) * c
-    return new_h, new_h
+    new_h = u * state + (1 - u) * c                                             # Computes the new hidden state of the GRU cell.
+    return new_h, new_h                                                         # Returns the updated hidden state for the next time step.
