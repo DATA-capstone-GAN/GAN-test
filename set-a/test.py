@@ -1,3 +1,5 @@
+# Overall, the code reads a medical data file, processes the information to separate demographic and clinical features, and prepares the 
+# data as a tensor for use in PyTorch, effectively handling missing values and ensuring the data is structured appropriately.
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 import torch.utils.data as data
