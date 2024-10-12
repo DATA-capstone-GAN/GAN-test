@@ -145,29 +145,29 @@ class MyGRUCell4(RNNCell):
     bias_initializer: (optional) The initializer to use for the bias.
   """
 
-  def __init__(self,
-               num_units,
-               activation=None,
-               reuse=None,
-               kernel_initializer=None,
-               bias_initializer=None):
+  def __init__(self,                                                          
+               num_units,                                                      # The number of hidden units in the RNN.
+               activation=None,                                                # Activation function for RNN (default = tanh)
+               reuse=None,                                                     # Defines whether to reuse variables or not.
+               kernel_initializer=None,                                        # Parameter for the wieght matrices.
+               bias_initializer=None):                                         # Parameter the bias term.
     super(MyGRUCell4, self).__init__(_reuse=reuse)
-    self._num_units = num_units
-    self._activation = activation or math_ops.tanh
-    self._kernel_initializer = kernel_initializer
-    self._bias_initializer = bias_initializer
-    self._gate_linear = None
-    self._candidate_linear = None
+    self._num_units = num_units                                                # Establishes number of neruons in the RNN.
+    self._activation = activation or math_ops.tanh                             # Establishes the activation function (tanh by default)
+    self._kernel_initializer = kernel_initializer                              # Initalization of the weight matrix.
+    self._bias_initializer = bias_initializer                                  # Initalization of the bias term.
+    self._gate_linear = None                                                   # Hold the linear transformation (weight and bias) used for calculating the gate values. Control the flow of information.
+    self._candidate_linear = None                                              # Responsible for the linear transformation for computing the candidate activation values, part of the GRU's mechanism for updating the hidden state.
 
   @property
-  def state_size(self):
+  def state_size(self):                                                        # Defines the size of the internal state of the GRU cell.
     return self._num_units
 
   @property
-  def output_size(self):
+  def output_size(self):                                                       # Defines the size of the output produced by the GRU cell.
     return self._num_units
 
-  def call(self, inputs, state):
+  def call(self, inputs, state):                                               # inputs - input data, state - previous hidden state
     """Gated recurrent unit (GRU) with nunits cells."""
     # inputs = realinputs + m +rt
     # rt's length is self._num_units
@@ -206,7 +206,7 @@ class MyGRUCell4(RNNCell):
     new_h = u * state + (1 - u) * c
     return new_h, new_h
 
-# Call GRUCell for TF version ???
+# Call GRUCell for TF version 1.2
 class MyGRUCell2(RNNCell):
   """Gated Recurrent Unit cell (cf. http://arxiv.org/abs/1406.1078).
 
