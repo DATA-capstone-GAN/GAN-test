@@ -1,3 +1,5 @@
+# The code defines a custom dataset class that reads a label file and corresponding data files, processes the medical data into a structured format, 
+# and provides it in a format suitable for use with PyTorch. The design allows for easy access to individual data entries, making it ideal for training machine learning models. 
 from __future__ import print_function
 import torch.utils.data as data
 import torch
@@ -5,16 +7,16 @@ import os
 
 class MyDataset(data.Dataset):
     def __init__(self, dataPath, labelPath):
-        labelFile = open(labelPath) # open file provided in class parameter
-        dataset=[] #initialize empty dataset list
+        labelFile = open(labelPath)                                              # open file provided in class parameter
+        dataset=[]                                                               # initialize empty dataset list
         #dataset: filenames,labels
-        line_num = 0 # initialize line counter
-        for line in  labelFile.readlines(): # return all lines in file, each line is an item in a list object
+        line_num = 0                                                             # initialize line counter
+        for line in  labelFile.readlines():                                      # return all lines in file, each line is an item in a list object
         # rstrip() remove spaces in right end
             if line_num!=0:
-                words = line.strip().split(',') #remove leading and trailing whitespace and create a list of strings split on ','
-                if os.path.isfile(os.path.join(dataPath, words[0]+".txt")): # create filenames for each word in a line
-                    dataset.append((words[0]+".txt", words[len(words)-1])) # add filenames to the initialized dataset list variable
+                words = line.strip().split(',')                                  # remove leading and trailing whitespace and create a list of strings split on ','
+                if os.path.isfile(os.path.join(dataPath, words[0]+".txt")):      # create filenames for each word in a line
+                    dataset.append((words[0]+".txt", words[len(words)-1]))       # add filenames to the initialized dataset list variable
             line_num=line_num+1 # advance line_num for loop
         self.dataPath = dataPath 
         self.dataset = dataset
