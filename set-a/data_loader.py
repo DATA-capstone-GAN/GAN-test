@@ -1,7 +1,7 @@
 # The code defines a custom dataset class that reads a label file and corresponding data files, processes the medical data into a structured format, 
 # and provides it in a format suitable for use with PyTorch. The design allows for easy access to individual data entries, making it ideal for training machine learning models. 
-from __future__ import print_function
-import torch.utils.data as data
+from __future__ import print_function                                            # Ensures compatibility for the print version with future implementations of Python.
+import torch.utils.data as data                                                  # Provides classes and functions for handling datasets and data loading.
 import torch
 import os
 
