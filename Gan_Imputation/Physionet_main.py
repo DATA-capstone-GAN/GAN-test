@@ -1,3 +1,6 @@
+# This is the setup script to run the WGAN (WGAN_GRUI.py).
+# It initializes a WGAN_GRUI object and builds the WGAN model which includes pretraining, the discriminator, and the generator.
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
