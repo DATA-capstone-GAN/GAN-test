@@ -1,5 +1,7 @@
-# Overall, the code reads a medical data file, processes the information to separate demographic and clinical features, and prepares the 
-# data as a tensor for use in PyTorch, effectively handling missing values and ensuring the data is structured appropriately.
+# This is just a test run script for the larger dataloader.py script.
+# For our purposes we do not need this script since the full version is available as dataLoader.py and that script has already been run using 
+# local directory of the original author.  The processed data is already available in .set-a/train.
+
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 import torch.utils.data as data
