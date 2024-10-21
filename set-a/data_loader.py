@@ -1,6 +1,8 @@
 # The script creates and instantiates the MyDataset class that prepares the time series data for use with the GRU and GAN.
 # The code defines a custom dataset class that reads a label file and corresponding data files, processes the medical data into a structured format, 
 # and provides it in a format suitable for use with PyTorch. The design allows for easy access to individual data entries, making it ideal for training machine learning models. 
+# This data and subsequently this file were executed by the original author so while it is good to understand what is happening here, this file is not really important for our purposes
+# because the data has already been processed and is present in the ..set-a/train folder.
 
 from __future__ import print_function                                                                    # Ensures compatibility for the print version with future implementations of Python.
 import torch.utils.data as data                                                                          # Provides classes and functions for handling datasets and data loading.
