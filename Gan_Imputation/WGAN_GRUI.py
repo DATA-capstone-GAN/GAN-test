@@ -225,32 +225,35 @@ class WGAN(object):
             
             for i in range(1,self.n_steps):
                 out_predict=tf.reshape(out_predict,[self.batch_size,self.n_inputs])
-                #输出加上noise z
+                # optionally add noise z to the output 
                 #out_predict=out_predict+tf.matmul(z,w_z)+b_z
                 #
                 delta_normal=tf.reshape(self.imputed_deltapre[:,i:(i+1),:],[self.batch_size,self.n_inputs])
                 rth= tf.matmul(delta_normal, wr_h)+br_h
                 rth=math_ops.exp(-tf.maximum(0.0,rth))
+
+                # concatenate the current output and the decay term, prepare it for the GRU input
                 x=tf.concat([out_predict,rth],1)
                 X_in = tf.reshape(x, [-1, 1, self.n_inputs+self.n_hidden_units])
-                
+
+                # run the GRU for the current step
                 outputs, final_state = tf.nn.dynamic_rnn(self.grud_cell_g, X_in, \
                             initial_state=init_state,\
                             sequence_length=seq_len,
                             time_major=False)
-                init_state=final_state
+                init_state=final_state # update state for next step
                 outputs=tf.reshape(outputs,[-1,self.n_hidden_units])
                 out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out
                 out_predict=tf.reshape(out_predict,[-1,1,self.n_inputs])
-                total_result=tf.concat([total_result,out_predict],1)
+                total_result=tf.concat([total_result,out_predict],1) # concatenate outputs across steps
             
             #delta:[batch_size,,n_inputs]
-        
+            # if batch normalization is enabled, apply it to the result
             if self.isbatch_normal:
                 with tf.variable_scope("g_bn", reuse=tf.AUTO_REUSE):
                     total_result=bn(total_result,is_training=is_training, scope="g_bn_imple")
             
-            
+            # return the final generated sequence and various intermediate values for some imputation
             last_values=tf.multiply(total_result,1)
             sub_values=tf.multiply(total_result,1)
 
@@ -262,7 +265,7 @@ class WGAN(object):
             return z_need_tune
             
     def build_model(self):
-        
+        # these are all just placeholders for various inputs and parameters
         self.keep_prob = tf.placeholder(tf.float32) 
         self.x = tf.placeholder(tf.float32, [None, self.n_steps, self.n_inputs])
         self.y = tf.placeholder(tf.float32, [None, self.n_classes])
@@ -282,21 +285,25 @@ class WGAN(object):
         
 
         """ Loss Function """
-
+        # pretrain the generator G to produce outputs close to the real data
         Pre_out=self.pretrainG(self.x, self.m, self.deltaPre,  self.mean,\
                                                       self.lastvalues, self.x_lengths,self.keep_prob, \
                                                       is_training=True, reuse=False)
         
+        # pretraining loss is based on the difference between generated vs real data
         self.pretrain_loss=tf.reduce_sum(tf.square(tf.multiply(Pre_out,self.m)-self.x)) / tf.cast(tf.reduce_sum(self.x_lengths),tf.float32)
         
         #discriminator( X, M, DeltaPre, Lastvalues ,DeltaSub ,SubValues , Mean,  X_lengths,Keep_prob, is_training=True, reuse=False, isTdata=True):
         
+        # real discriminator D_real output is based on real input data
         D_real, D_real_logits = self.discriminator(self.x, self.m, self.deltaPre,self.lastvalues,\
                                                    self.deltaSub,self.subvalues,  self.mean,\
                                                        self.x_lengths,self.keep_prob, \
                                                       is_training=True, reuse=False,isTdata=True)
 
         #G return total_result,self.imputed_deltapre,self.imputed_deltasub,self.imputed_m,self.x_lengths,last_values,sub_values
+        # fake discriminator D_fake which is based on fake, generated input data
+        
         g_x,g_deltapre,g_deltasub,g_m,G_x_lengths,g_last_values,g_sub_values = self.generator(self.z,self.keep_prob, is_training=True, reuse=True)
         
         D_fake, D_fake_logits = self.discriminator(g_x,g_m,g_deltapre,g_last_values,\
@@ -307,21 +314,23 @@ class WGAN(object):
         """
         impute loss
         """
+        # fine tuning the noise variable for imputation
         self.z_need_tune=self.impute()
-        
+
+        # generated output during imputation 
         impute_out,impute_deltapre,impute_deltasub,impute_m,impute_x_lengths,impute_last_values,impute_sub_values=self.generator(self.z_need_tune,self.keep_prob, is_training=False, reuse=True)
         
-        
+        # discriminator output for the imputed data
         impute_fake, impute_fake_logits = self.discriminator(impute_out,impute_m,impute_deltapre,impute_last_values,\
                                                              impute_deltasub,impute_sub_values,self.mean,\
                                                       impute_x_lengths,self.keep_prob,
                                                       is_training=False, reuse=True ,isTdata=False)
         
-        # loss for imputation
-        
+        # loss for imputation, combines reconstruction and adversarial loss
         self.impute_loss=tf.reduce_mean(tf.square(tf.multiply(impute_out,self.m)-self.x))-self.g_loss_lambda*tf.reduce_mean(impute_fake_logits)
         #self.impute_loss=tf.reduce_mean(tf.square(tf.multiply(impute_out,self.m)-self.x))
-        
+
+        # final imputed data is a mixture between real and impputed data, decided by mask m
         self.impute_out=impute_out
         
         #the imputed results
