@@ -15,6 +15,7 @@ import os, gzip
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
+#load dataset
 def load_mnist(dataset_name):
     data_dir = os.path.join("./data", dataset_name)
 
@@ -25,36 +26,47 @@ def load_mnist(dataset_name):
             data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
         return data
 
+    # load training images
     data = extract_data(data_dir + '/train-images-idx3-ubyte.gz', 60000, 16, 28 * 28)
     trX = data.reshape((60000, 28, 28, 1))
-
+    
+    # load training labels
     data = extract_data(data_dir + '/train-labels-idx1-ubyte.gz', 60000, 8, 1)
     trY = data.reshape((60000))
 
+    # load test images
     data = extract_data(data_dir + '/t10k-images-idx3-ubyte.gz', 10000, 16, 28 * 28)
     teX = data.reshape((10000, 28, 28, 1))
 
+    # load test labels
     data = extract_data(data_dir + '/t10k-labels-idx1-ubyte.gz', 10000, 8, 1)
     teY = data.reshape((10000))
 
+    # convert labels to numpy arrays
     trY = np.asarray(trY)
     teY = np.asarray(teY)
 
+    # concatenate training and test sets
     X = np.concatenate((trX, teX), axis=0)
     y = np.concatenate((trY, teY), axis=0).astype(np.int)
 
+
+    # randomly shuffle datasets, seed set for reproducibility
     seed = 547
     np.random.seed(seed)
     np.random.shuffle(X)
     np.random.seed(seed)
     np.random.shuffle(y)
 
+    # one-hot encoding label conversion
     y_vec = np.zeros((len(y), 10), dtype=np.float)
     for i, label in enumerate(y):
         y_vec[i, y[i]] = 1.0
 
+    # normalize pixel values and the dataset
     return X / 255., y_vec
 
+# checks if a folder exists, creates it if it does not.
 def check_folder(log_dir):
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -64,22 +76,27 @@ def show_all_variables():
     model_vars = tf.trainable_variables()
     slim.model_analyzer.analyze_vars(model_vars, print_info=True)
 
+# loads and preprocesses an image
 def get_image(image_path, input_height, input_width, resize_height=64, resize_width=64, crop=True, grayscale=False):
     image = imread(image_path, grayscale)
     return transform(image, input_height, input_width, resize_height, resize_width, crop)
 
+# saves image to a specficied path
 def save_images(images, size, image_path):
     return imsave(inverse_transform(images), size, image_path)
 
+# reads image from a file
 def imread(path, grayscale = False):
     if (grayscale):
         return scipy.misc.imread(path, flatten = True).astype(np.float)
     else:
         return scipy.misc.imread(path).astype(np.float)
 
+# merges several images into one large image, while dealing with scaling 
 def merge_images(images, size):
     return inverse_transform(images)
 
+# merges multiple images into a grid formation
 def merge(images, size):
     h, w = images.shape[1], images.shape[2]
     if (images.shape[3] in (3,4)):
@@ -100,10 +117,12 @@ def merge(images, size):
     else:
         raise ValueError('in merge(images,size) images parameter ''must have dimensions: HxW or HxWx3 or HxWx4')
 
+# saves a merged image to a path
 def imsave(images, size, path):
     image = np.squeeze(merge(images, size))
     return scipy.misc.imsave(path, image)
 
+# crop the image to desired widtih and height
 def center_crop(x, crop_h, crop_w, resize_h=64, resize_w=64):
     if crop_w is None:
         crop_w = crop_h
@@ -112,6 +131,7 @@ def center_crop(x, crop_h, crop_w, resize_h=64, resize_w=64):
     i = int(round((w - crop_w)/2.))
     return scipy.misc.imresize(x[j:j+crop_h, i:i+crop_w], [resize_h, resize_w])
 
+# image transformation function
 def transform(image, input_height, input_width, resize_height=64, resize_width=64, crop=True):
     if crop:
         cropped_image = center_crop(image, input_height, input_width, resize_height, resize_width)
@@ -119,11 +139,14 @@ def transform(image, input_height, input_width, resize_height=64, resize_width=6
         cropped_image = scipy.misc.imresize(image, [resize_height, resize_width])
     return np.array(cropped_image)/127.5 - 1.
 
+# transforms, convert pixel values from [-1, 1] back to [0, 1]
 def inverse_transform(images):
     return (images+1.)/2.
 
 """ Drawing Tools """
 # borrowed from https://github.com/ykwon0407/variational_autoencoder/blob/master/variational_bayes.ipynb
+
+# saves a scatter plot of latent variables
 def save_scattered_image(z, id, z_range_x, z_range_y, name='scattered_image.jpg'):
     N = 10
     plt.figure(figsize=(8, 6))
