@@ -1,3 +1,6 @@
+# This is the Wasserstein Generative Adversarial Network that will generate the imputed values for the missing data.
+# It uses a Gated Recurrent Unit (GRU) to assist in processing the time series data.  Usage of the GRU allows for the capturing of the temporal depencies within the data.
+
 #-*- coding: utf-8 -*-
 from __future__ import division
 import os
