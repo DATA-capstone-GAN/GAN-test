@@ -1,5 +1,6 @@
 # This is the Wasserstein Generative Adversarial Network that will generate the imputed values for the missing data.
 # It uses a Gated Recurrent Unit (GRU) to assist in processing the time series data.  Usage of the GRU allows for the capturing of the temporal depencies within the data.
+# The main difference between this and a traditional GAN is the replacement of the loss function from binary cross entropy to the Wasserstein distance.
 
 #-*- coding: utf-8 -*-
 from __future__ import division
@@ -22,8 +23,6 @@ Discriminator input normalization, do not use m, fill with 0
 Generator input: remove m, only keep delta.
 g does not accumulate z every time.
 """
-#This class builds a Wasserstein Generative Adversarial Network (WGAN)
-#The main difference between this and a traditional GAN is the replacement of the loss function from binary cross entropy to the Wasserstein distance.
 class WGAN(object):
     model_name = "WGAN_no_mask"     # name for checkpoint
 
