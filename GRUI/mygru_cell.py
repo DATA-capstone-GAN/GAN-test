@@ -1,3 +1,7 @@
+# This is the Gated Recurrent Unit (GRU) used by WGAN_GRUI.py to capture the temporal information necessary for the GAN to generate good values for the missing data.
+# It can process sequences with missing values, learn patterns and use them to make better predictions.
+# The main purpose is to capture temporal dependencies so they can then be passed to the WGAN_GRUI.
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
