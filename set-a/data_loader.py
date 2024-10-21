@@ -1,4 +1,4 @@
-# The script  prepares the time series data for use with the GRU and GAN.
+# The script creates and instantiates the MyDataset class that prepares the time series data for use with the GRU and GAN.
 # The code defines a custom dataset class that reads a label file and corresponding data files, processes the medical data into a structured format, 
 # and provides it in a format suitable for use with PyTorch. The design allows for easy access to individual data entries, making it ideal for training machine learning models. 
 
@@ -11,18 +11,16 @@ import os                                                                       
 class MyDataset(data.Dataset):
     def __init__(self, dataPath, labelPath):
         labelFile = open(labelPath)                                                                      # Open the label file containing data file names and labels.
-        dataset=[]                                                                                       # Initialize an empty list for storing dataset items.
-        #dataset: filenames,labels            
-        line_num = 0                                                                                     # Initialize a counter for line number.
-        for line in  labelFile.readlines():                                                              # Loop through each line in the label file.
-        # rstrip() remove spaces in right end
+        dataset=[]                                                                                       # Initialize an empty list for storing dataset items.  Stores file names and labels.                                                                                                                                                             
+        line_num = 0                                                                                     # Initialize a counter that will track line number.
+        for line in  labelFile.readlines():                                                              # Loop through each line in the label file.        
             if line_num!=0:                                                                              # Skip the header (if any).
-                words = line.strip().split(',')                                                          # Remove leading and trailing whitespace and create a list of strings split on commas.
+                words = line.strip().split(',')                                                          # Remove leading and trailing whitespace and create a list of strings split on commas. Splits each file into a file name and label.
                 if os.path.isfile(os.path.join(dataPath, words[0]+".txt")):                              # Check if a corresponding data file exists for the entry.
                     dataset.append((words[0]+".txt", words[len(words)-1]))                               # Add the filename and its associated label to the dataset list.
-            line_num=line_num+1 # advance line_num for loop                                              # Increment the line number counter.
+            line_num=line_num+1                                                                          # Increment the line number counter.  Advance line_num for loop.
         self.dataPath = dataPath                                                                         # Save the path to the data files. Holds the directory of data files.
-        self.dataset = dataset                                                                           # Store the list of datasets. Holds teh dataset tuples of (file, label).
+        self.dataset = dataset                                                                           # Store the list of datasets. Holds the dataset tuples of (file name, label).
         dic={'time':0,'Age':1,'Gender':2,'Height':3,'ICUType':4,'Weight':5,'Albumin':6,\                 # Defines a dictionary (dic) that maps medical feature names (e.g., Age, Weight) to specific indices (0–41).
              'ALP':7,'ALT':8,'AST':9,'Bilirubin':10,'BUN':11,'Cholesterol':12,'Creatinine':13,\
              'DiasABP':14,'FiO2':15,'GCS':16,'Glucose':17,'HCO3':18,'HCT':19,'HR':20,\
@@ -40,10 +38,10 @@ class MyDataset(data.Dataset):
     def __getitem__(self, index):
         #print(self.dataset[index])
         fileName, label = self.dataset[index]                                                            # Get the filename and label at the given index.
-        f=open(os.path.join(self.dataPath, fileName))                                                    # Open the corresponding data file.
+        f=open(os.path.join(self.dataPath, fileName))                                                    # Opens the corresponding data file and initialize to variable "f".
         #read_csv is DataFrame, need to be transformed into ndarray
-        count=0                                                                                          # Initialize counter.
-        age=gender=height=icutype=weight=-1                                                              # Initialize key patient information to -1 (missing).
+        count=0                                                                                          # Initialize counter that will track the line number in f.
+        age=gender=height=icutype=weight=-1                                                              # Initialize key patient information to -1 (indicating missing values).
         lastTime=0                                                                                       # Track the last timestamp processed.
         totalData=[]                                                                                     # Initialize list to store time-series data.
 
@@ -57,7 +55,7 @@ class MyDataset(data.Dataset):
                 value=words[2]
                 
                 # -1 is missing value
-                if timestamp == "00:00":                                                                 # If the timestamp is "00:00", the patient's baseline info is stored.
+                if timestamp == "00:00":                                                                 # If the timestamp is "00:00", the patient's baseline info (Age, Gender, etc.) is stored.
                     if feature=='Age':
                         age=value
                     if feature=='Gender':
@@ -70,28 +68,28 @@ class MyDataset(data.Dataset):
                         weight=value
                 else:
                     if timestamp!=lastTime:                                                               # If this is a new timestamp, start a new data entry.
-                        data=[-1.0]*42                                                                    # Initialize the data entry with -1 (missing) values.
-                        hourandminute=timestamp.split(":")
-                        data[0]=float(hourandminute[0])*60+float(hourandminute[1])                        # Convert timestamp to minutes.
-                        data[1]=float(age)                                                                # Add patient baseline info.
-                        data[2]=float(gender)                                                             # Add patient baseline info.
-                        data[3]=float(height)                                                             # Add patient baseline info.
-                        data[4]=float(icutype)                                                            # Add patient baseline info.
-                        data[5]=float(weight)                                                             # Add patient baseline info.
+                        data=[-1.0]*42                                                                    # Initialize the data (feature) list entry with -1 (missing) values.  These will be updated if the particular feature value is not missing.
+                        hourandminute=timestamp.split(":")                                                # Split the timestamp feature on the colon and store in a new "hourminute" variable.
+                        data[0]=float(hourandminute[0])*60+float(hourandminute[1])                        # Convert hour/minute timestamp to just minutes and store at index 0 of data (feature) list.
+                        data[1]=float(age)                                                                # Add patient age baseline info at index 1 of data (feature) list.
+                        data[2]=float(gender)                                                             # Add patient gender baseline info index 2 of data (feature) list.
+                        data[3]=float(height)                                                             # Add patient height baseline info index 3 of data (feature) list.
+                        data[4]=float(icutype)                                                            # Add patient icutype baseline info index 4 of data (feature) list.
+                        data[5]=float(weight)                                                             # Add patient weight baseline info index 5 of data (feature) list.
                         data[self.dic[feature]]=float(value)                                              # Update the corresponding feature using the feature dictionary.
-                        totalData.append(data)                                                            # Add the data entry to the list.
+                        totalData.append(data)                                                            # Add the data entry to the list that will store the feature values for all lines.
                     else:
                         totalData[len(totalData)-1][self.dic[feature]]=float(value)                       # If the same timestamp, update the existing entry with new feature data.
                 lastTime=timestamp      
-            count+=1
+            count+=1                                                                                      # Increment line counter so that the next line in "f" can be processed.
             #if len(totalData)==24:
             #    break;
         #print(totalData)
         #print(label)
-        return torch.FloatTensor(totalData), label, fileName                                              # Return the processed time-series data, label, and filename.
+        return torch.FloatTensor(totalData), label, fileName                                              # Converts "totalData" (all feature values) to a tensor. Returns the processed time-series data tensor with label, and filename.
 
-    # Returns the total number of entries in the dataset.
-    def __len__(self):
+    
+    def __len__(self):                                                                                    # Returns the total number of files in the dataset. Each file contains multiple timestamps and each timestamp has 42 features.
         return len(self.dataset)
 
 dataset = MyDataset("/home/lyh/Desktop/set-a/train/", "/home/lyh/Desktop/set-a/train/list.txt")           # Instantiate the dataset object. Creates an instance of the MyDataset class, loading data from the specified path.
