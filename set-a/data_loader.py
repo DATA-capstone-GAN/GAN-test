@@ -1,3 +1,4 @@
+# The script  prepares the time series data for use with the GRU and GAN.
 # The code defines a custom dataset class that reads a label file and corresponding data files, processes the medical data into a structured format, 
 # and provides it in a format suitable for use with PyTorch. The design allows for easy access to individual data entries, making it ideal for training machine learning models. 
 
