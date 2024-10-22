@@ -469,278 +469,298 @@ class WGAN(object):
                 #    self.save(self.checkpoint_dir, counter)
 
 
-   def train(self):
-    # Generate random noise samples for training
-    self.sample_z = np.random.standard_normal(size=(self.batch_size, self.z_dim))
+    def train(self):
+      # Generate random noise samples for training
+      self.sample_z = np.random.standard_normal(size=(self.batch_size, self.z_dim))
 
-    # Create a TensorFlow saver to save the model's checkpoints
-    self.saver = tf.train.Saver()
+      # Create a TensorFlow saver to save the model's checkpoints
+      self.saver = tf.train.Saver()
 
-    # Initialize a summary writer for TensorBoard logging
-    self.writer = tf.summary.FileWriter(self.log_dir + '/' + self.model_name + '/' + self.model_dir)
+      # Initialize a summary writer for TensorBoard logging
+      self.writer = tf.summary.FileWriter(self.log_dir + '/' + self.model_name + '/' + self.model_dir)
 
-    # Attempt to load the latest checkpoint, if it exists
-    could_load, checkpoint_counter = self.load(self.checkpoint_dir)
-    if could_load:
-        # Calculate the starting epoch based on the checkpoint counter
-        start_epoch = (int)(checkpoint_counter / self.num_batches)
-        # Start batch ID is set to zero for simplicity
-        start_batch_id = 0
-        # Counter is initialized based on the start epoch
-        counter = start_epoch * self.num_batches
-        print(" [*] Load SUCCESS")
-        return 
-    else:
-        # If no checkpoint is found, initialize all TensorFlow variables
-        tf.global_variables_initializer().run()
-        start_epoch = 0  # Starting from the first epoch
-        start_batch_id = 0  # Starting from the first batch
-        counter = 1  # Initial counter
-        print(" [!] Load failed...")
+      # Attempt to load the latest checkpoint, if it exists
+      could_load, checkpoint_counter = self.load(self.checkpoint_dir)
+      if could_load:
+          # Calculate the starting epoch based on the checkpoint counter
+          start_epoch = (int)(checkpoint_counter / self.num_batches)
+          # Start batch ID is set to zero for simplicity
+          start_batch_id = 0
+          # Counter is initialized based on the start epoch
+          counter = start_epoch * self.num_batches
+          print(" [*] Load SUCCESS")
+          return 
+      else:
+          # If no checkpoint is found, initialize all TensorFlow variables
+          tf.global_variables_initializer().run()
+          start_epoch = 0  # Starting from the first epoch
+          start_batch_id = 0  # Starting from the first batch
+          counter = 1  # Initial counter
+          print(" [!] Load failed...")
 
-    # Start measuring time for the training process
-    start_time = time.time()
+      # Start measuring time for the training process
+      start_time = time.time()
     
-    # Call pretraining function, if applicable
-    self.pretrain(start_epoch, counter, start_time)
-    if start_epoch < self.pretrain_epoch:
-        start_epoch = self.pretrain_epoch  # Ensure pretraining is completed if needed
+      # Call pretraining function, if applicable
+      self.pretrain(start_epoch, counter, start_time)
+      if start_epoch < self.pretrain_epoch:
+          start_epoch = self.pretrain_epoch  # Ensure pretraining is completed if needed
     
-    # Main training loop over epochs
-    for epoch in range(start_epoch, self.epoch):
-        # Shuffle the dataset for each epoch
-        self.datasets.shuffle(self.batch_size, True)
-        idx = 0  # Initialize index for batches
+      # Main training loop over epochs
+      for epoch in range(start_epoch, self.epoch):
+          # Shuffle the dataset for each epoch
+          self.datasets.shuffle(self.batch_size, True)
+          idx = 0  # Initialize index for batches
         
-        # Loop over batches of data
-        for data_x, data_y, data_mean, data_m, data_deltaPre, data_x_lengths, data_lastvalues, _, imputed_deltapre, imputed_m, deltaSub, subvalues, imputed_deltasub in self.datasets.nextBatch():
+          # Loop over batches of data
+          for data_x, data_y, data_mean, data_m, data_deltaPre, data_x_lengths, data_lastvalues, _, imputed_deltapre, imputed_m, deltaSub, subvalues, imputed_deltasub in self.datasets.nextBatch():
             
-            # Generate random noise for the generator input
-            batch_z = np.random.standard_normal(size=(self.batch_size, self.z_dim))
-            # Clip the values of the discriminator to enforce gradient penalties
-            _ = self.sess.run(self.clip_all_vals)
-            # Train the discriminator and get the loss and summary
-            _, summary_str, d_loss = self.sess.run([self.d_optim, self.d_sum, self.d_loss],
-                                                   feed_dict={self.z: batch_z,
-                                                              self.x: data_x,
-                                                              self.m: data_m,
-                                                              self.deltaPre: data_deltaPre,
-                                                              self.mean: data_mean,
-                                                              self.x_lengths: data_x_lengths,
-                                                              self.lastvalues: data_lastvalues,
-                                                              self.deltaSub: deltaSub,
-                                                              self.subvalues: subvalues,
-                                                              self.imputed_m: imputed_m,
-                                                              self.imputed_deltapre: imputed_deltapre,
-                                                              self.imputed_deltasub: imputed_deltasub,
-                                                              self.keep_prob: 0.5})
-            # Log the discriminator summary to TensorBoard
-            self.writer.add_summary(summary_str, counter)
+              # Generate random noise for the generator input
+              batch_z = np.random.standard_normal(size=(self.batch_size, self.z_dim))
+              # Clip the values of the discriminator to enforce gradient penalties
+              _ = self.sess.run(self.clip_all_vals)
+              # Train the discriminator and get the loss and summary
+              _, summary_str, d_loss = self.sess.run([self.d_optim, self.d_sum, self.d_loss],
+                                             feed_dict={self.z: batch_z,
+                                                        self.x: data_x,
+                                                        self.m: data_m,
+                                                        self.deltaPre: data_deltaPre,
+                                                        self.mean: data_mean,
+                                                        self.x_lengths: data_x_lengths,
+                                                        self.lastvalues: data_lastvalues,
+                                                        self.deltaSub: deltaSub,
+                                                        self.subvalues: subvalues,
+                                                        self.imputed_m: imputed_m,
+                                                        self.imputed_deltapre: imputed_deltapre,
+                                                        self.imputed_deltasub: imputed_deltasub,
+                                                        self.keep_prob: 0.5})
+              # Log the discriminator summary to TensorBoard
+              self.writer.add_summary(summary_str, counter)
 
-            # Update the generator network every `disc_iters` iterations
-            if counter % self.disc_iters == 0:
-                # Train the generator and get the loss and summary
-                _, summary_str, g_loss = self.sess.run([self.g_optim, self.g_sum, self.g_loss], 
-                                                       feed_dict={self.z: batch_z,
-                                                                  self.keep_prob: 0.5,
-                                                                  self.deltaPre: data_deltaPre,
-                                                                  self.mean: data_mean,
-                                                                  self.x_lengths: data_x_lengths,
-                                                                  self.lastvalues: data_lastvalues,
-                                                                  self.deltaSub: deltaSub,
-                                                                  self.subvalues: subvalues,
-                                                                  self.imputed_m: imputed_m,
-                                                                  self.imputed_deltapre: imputed_deltapre,
-                                                                  self.imputed_deltasub: imputed_deltasub,
-                                                                  self.mean: data_mean})
-                # Log the generator summary to TensorBoard
-                self.writer.add_summary(summary_str, counter)
-                # Print training status with current epoch, batch info, and losses
-                print("Epoch: [%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f, counter: %4d" \
-                      % (epoch, idx, self.num_batches, time.time() - start_time, d_loss, g_loss, counter))
+              # Update the generator network every `disc_iters` iterations
+              if counter % self.disc_iters == 0:
+                  # Train the generator and get the loss and summary
+                  _, summary_str, g_loss = self.sess.run([self.g_optim, self.g_sum, self.g_loss], 
+                                                         feed_dict={self.z: batch_z,
+                                                         self.keep_prob: 0.5,
+                                                         self.deltaPre: data_deltaPre,
+                                                         self.mean: data_mean,
+                                                         self.x_lengths: data_x_lengths,
+                                                         self.lastvalues: data_lastvalues,
+                                                         self.deltaSub: deltaSub,
+                                                         self.subvalues: subvalues,
+                                                         self.imputed_m: imputed_m,
+                                                         self.imputed_deltapre: imputed_deltapre,
+                                                         self.imputed_deltasub: imputed_deltasub,
+                                                         self.mean: data_mean})
+                  # Log the generator summary to TensorBoard
+                  self.writer.add_summary(summary_str, counter)
+                  # Print training status with current epoch, batch info, and losses
+                  print("Epoch: [%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f, counter: %4d" \
+                    % (epoch, idx, self.num_batches, time.time() - start_time, d_loss, g_loss, counter))
 
-            # Increment the counter for training steps
-            counter += 1
+              # Increment the counter for training steps
+              counter += 1
 
-            # Display training status for every batch processed
-            print("Epoch: [%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, counter: %4d" \
-                  % (epoch, idx, self.num_batches, time.time() - start_time, d_loss, counter))
+              # Display training status for every batch processed
+              print("Epoch: [%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, counter: %4d" \
+                    % (epoch, idx, self.num_batches, time.time() - start_time, d_loss, counter))
 
-            # Save generated samples every 300 steps
-            if np.mod(counter, 300) == 0:
-                # Generate fake samples from the generator
-                fake_x, fake_delta = self.sess.run([self.fake_x, self.fake_delta],
-                                                    feed_dict={self.z: batch_z,
-                                                               self.deltaPre: data_deltaPre,
-                                                               self.mean: data_mean,
-                                                               self.x_lengths: data_x_lengths,
-                                                               self.lastvalues: data_lastvalues,
-                                                               self.deltaSub: deltaSub,
-                                                               self.subvalues: subvalues,
-                                                               self.imputed_m: imputed_m,
-                                                               self.imputed_deltapre: imputed_deltapre,
-                                                               self.imputed_deltasub: imputed_deltasub,
-                                                               self.mean: data_mean,
-                                                               self.keep_prob: 0.5})
-                # If running in training mode, save the generated samples
-                if self.run_type == "train":
-                    self.writeG_Samples("G_sample_x", counter, fake_x)
-                    self.writeG_Samples("G_sample_delta", counter, fake_delta)
+              # Save generated samples every 300 steps
+              if np.mod(counter, 300) == 0:
+                  # Generate fake samples from the generator
+                  fake_x, fake_delta = self.sess.run([self.fake_x, self.fake_delta],
+                                           feed_dict={self.z: batch_z,
+                                                      self.deltaPre: data_deltaPre,
+                                                      self.mean: data_mean,
+                                                      self.x_lengths: data_x_lengths,
+                                                      self.lastvalues: data_lastvalues,
+                                                      self.deltaSub: deltaSub,
+                                                      self.subvalues: subvalues,
+                                                      self.imputed_m: imputed_m,
+                                                      self.imputed_deltapre: imputed_deltapre,
+                                                      self.imputed_deltasub: imputed_deltasub,
+                                                      self.mean: data_mean,
+                                                      self.keep_prob: 0.5})
+                  # If running in training mode, save the generated samples
+                  if self.run_type == "train":
+                      self.writeG_Samples("G_sample_x", counter, fake_x)
+                      self.writeG_Samples("G_sample_delta", counter, fake_delta)
                 
-            idx += 1  # Increment the batch index
+              idx += 1  # Increment the batch index
             
-        # Reset the start_batch_id to zero after each epoch
-        start_batch_id = 0
+          # Reset the start_batch_id to zero after each epoch
+          start_batch_id = 0
 
-    # Save the model checkpoint after training is complete
-    self.save(self.checkpoint_dir, counter)
+      # Save the model checkpoint after training is complete
+      self.save(self.checkpoint_dir, counter)
 
-def imputation(self, dataset, isTrain):
-    # Set the dataset for imputation and shuffle it
-    self.datasets = dataset
-    self.datasets.shuffle(self.batch_size, True)
-    # Initialize the variable needed for tuning
-    tf.variables_initializer([self.z_need_tune]).run()
-    # The training data can't be perfectly divisible by batch_size; the rest is discarded
-    start_time = time.time()  # Start timing the imputation process
-    batchid = 1  # Initialize batch ID
-    impute_tune_time = 1  # Initialize the impute tuning time
-    counter = 1  # Initialize counter for imputation steps
-    
-    # Loop over batches for imputation
-    for data_x, data_y, data_mean, data_m, data_deltaPre, data_x_lengths, data_lastvalues, _, imputed_deltapre, imputed_m, deltaSub, subvalues, imputed_deltasub in self.datasets.nextBatch():
-        # Initialize the z variable for tuning
+    def imputation(self, dataset, isTrain):
+        # Set the dataset for imputation and shuffle it
+        self.datasets = dataset
+        self.datasets.shuffle(self.batch_size, True)
+        # Initialize the variable needed for tuning
         tf.variables_initializer([self.z_need_tune]).run()
+        # The training data can't be perfectly divisible by batch_size; the rest is discarded
+        start_time = time.time()  # Start timing the imputation process
+        batchid = 1  # Initialize batch ID
+        impute_tune_time = 1  # Initialize the impute tuning time
+        counter = 1  # Initialize counter for imputation steps
+    
+        # Loop over batches for imputation
+        for data_x, data_y, data_mean, data_m, data_deltaPre, data_x_lengths, data_lastvalues, _, imputed_deltapre, imputed_m, deltaSub, subvalues, imputed_deltasub in self.datasets.nextBatch():
+            # Initialize the z variable for tuning
+            tf.variables_initializer([self.z_need_tune]).run()
         
-        # Run imputation for a set number of iterations
-        for i in range(0, self.impute_iter):
-            # Perform optimization step for imputation
-            _, impute_out, summary_str, impute_loss, imputed = self.sess.run([self.impute_optim, self.impute_out, self.impute_sum, self.impute_loss, self.imputed],
-                                                                           feed_dict={self.x: data_x,
-                                                                                      self.m: data_m,
-                                                                                      self.deltaPre: data_deltaPre,
-                                                                                      self.mean: data_mean,
-                                                                                      self.x_lengths: data_x_lengths,
-                                                                                      self.lastvalues: data_lastvalues,
-                                                                                      self.deltaSub: deltaSub,
-                                                                                      self.subvalues: subvalues,
-                                                                                      self.imputed_m: imputed_m,
-                                                                                      self.imputed_deltapre: imputed_deltapre,
-                                                                                      self.imputed_deltasub: imputed_deltasub,
-                                                                                      self.keep_prob: 1.0})
-            impute_tune_time += 1  # Increment the impute tuning time
-            counter += 1  # Increment the counter
+            # Run imputation for a set number of iterations
+            for i in range(0, self.impute_iter):
+                # Perform optimization step for imputation
+                _, impute_out, summary_str, impute_loss, imputed = self.sess.run([self.impute_optim, self.impute_out, self.impute_sum, self.impute_loss, self.imputed],
+                                                       feed_dict={self.x: data_x,
+                                                       self.m: data_m,
+                                                       self.deltaPre: data_deltaPre,
+                                                       self.mean: data_mean,
+                                                       self.x_lengths: data_x_lengths,
+                                                       self.lastvalues: data_lastvalues,
+                                                       self.deltaSub: deltaSub,
+                                                       self.subvalues: subvalues,
+                                                       self.imputed_m: imputed_m,
+                                                       self.imputed_deltapre: imputed_deltapre,
+                                                       self.imputed_deltasub: imputed_deltasub,
+                                                       self.keep_prob: 1.0})
+                impute_tune_time += 1  # Increment the impute tuning time
+                counter += 1  # Increment the counter
             
-            # Print status every 10 iterations
-            if counter % 10 == 0:
-                print("Batchid: [%2d] [%4d/%4d] time: %4.4f, impute_loss: %.8f" \
-                      % (batchid, impute_tune_time, self.impute_iter, time.time() - start_time, impute_loss))
-                # Log summary to TensorBoard
-                self.writer.add_summary(summary_str, counter / 10)
+                # Print status every 10 iterations
+                if counter % 10 == 0:
+                    print("Batchid: [%2d] [%4d/%4d] time: %4.4f, impute_loss: %.8f" \
+                          % (batchid, impute_tune_time, self.impute_iter, time.time() - start_time, impute_loss))
+                    # Log summary to TensorBoard
+                    self.writer.add_summary(summary_str, counter / 10)
         
-        # Save the imputed results
-        self.save_imputation(imputed, batchid, data_x_lengths, data_deltaPre, data_y, isTrain)
-        batchid += 1  # Increment batch ID
-        impute_tune_time = 1  # Reset impute tuning time for the next batch
+            # Save the imputed results
+            self.save_imputation(imputed, batchid, data_x_lengths, data_deltaPre, data_y, isTrain)
+            batchid += 1  # Increment batch ID
+            impute_tune_time = 1  # Reset impute tuning time for the next batch
 
-@property
-def model_dir(self):
-    # Generate a string representing the model directory based on various parameters
-    return "{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
-        self.epoch, self.disc_iters,
-        self.batch_size, self.z_dim,
-        self.lr, self.impute_iter,
-        self.isNormal, self.isbatch_normal,
-        self.isSlicing, self.g_loss_lambda,
-        self.beta1
-    )
+    @property
+    def model_dir(self):
+        # Generate a string representing the model directory based on various parameters
+        return "{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
+            self.epoch, self.disc_iters,
+            self.batch_size, self.z_dim,
+            self.lr, self.impute_iter,
+            self.isNormal, self.isbatch_normal,
+            self.isSlicing, self.g_loss_lambda,
+            self.beta1
+            )
 
-def save_imputation(self, impute_out, batchid, data_x_lengths, data_times, data_y, isTrain):
-    # Determine the directory for saving imputation results based on training or testing
-    if isTrain:
-        imputation_dir = "imputation_train_results"
-    else:
-        imputation_dir = "imputation_test_results"
+    def save_imputation(self, impute_out, batchid, data_x_lengths, data_times, data_y, isTrain):
+        # Determine the directory for saving imputation results based on training or testing
+        if isTrain:
+            imputation_dir = "imputation_train_results"
+        else:
+            imputation_dir = "imputation_test_results"
     
-    # Create the necessary directories if they don't exist
-    if not os.path.exists(os.path.join(imputation_dir, self.model_name, self.model_dir)):
-        os.makedirs(os.path.join(imputation_dir, self.model_name, self.model_dir))
+        # Create the necessary directories if they don't exist
+        if not os.path.exists(os.path.join(imputation_dir,
+                                     self.model_name,
+                                     self.model_dir)):
+            os.makedirs(os.path.join(imputation_dir, 
+                                     self.model_name,
+                                     self.model_dir))
         
-    # Write the imputed data
-    resultFile = open(os.path.join(imputation_dir, self.model_name, self.model_dir, "batch" + str(batchid) + "x"), 'w')
-    for length in data_x_lengths:
-        resultFile.writelines(str(length) + ",")  # Write lengths of each series
-    resultFile.writelines("\r\n")
+        # Write the imputed data
+        resultFile = open(os.path.join(imputation_dir,
+                                       self.model_name,
+                                       self.model_dir,
+                                       "batch" + str(batchid) + "x"), 'w')
+        for length in data_x_lengths:
+            resultFile.writelines(str(length) + ",")  # Write lengths of each series
+        resultFile.writelines("\r\n")
     
-    # Write imputed output data
-    for oneSeries in impute_out:
-        resultFile.writelines("begin\r\n")  # Mark the beginning of a series
-        for oneClass in oneSeries:
-            for i in oneClass.flat:
-                resultFile.writelines(str(i) + ",")  # Write each value in the series
-            resultFile.writelines("\r\n")
-        resultFile.writelines("end\r\n")  # Mark the end of a series
-    resultFile.close()  # Close the file after writing
+        # Write imputed output data
+        for oneSeries in impute_out:
+            resultFile.writelines("begin\r\n")  # Mark the beginning of a series
+            for oneClass in oneSeries:
+                for i in oneClass.flat:
+                    resultFile.writelines(str(i) + ",")  # Write each value in the series
+                resultFile.writelines("\r\n")
+            resultFile.writelines("end\r\n")  # Mark the end of a series
+        resultFile.close()  # Close the file after writing
     
-    # Write data times (timestamps)
-    resultFile = open(os.path.join(imputation_dir, self.model_name, self.model_dir, "batch" + str(batchid) + "delta"), 'w')
-    for oneSeries in data_times:
-        resultFile.writelines("begin\r\n")  # Mark the beginning of a time series
-        for oneClass in oneSeries:
-            for i in oneClass:
-                resultFile.writelines(str(i) + ",")  # Write each timestamp
-            resultFile.writelines("\r\n")
-        resultFile.writelines("end\r\n")  # Mark the end of a time series
-    resultFile.close()  # Close the file after writing
+        # Write data times (timestamps)
+        resultFile = open(os.path.join(imputation_dir,
+                                       self.model_name,
+                                       self.model_dir,
+                                       "batch" + str(batchid) + "delta"), 'w')
+        for oneSeries in data_times:
+            resultFile.writelines("begin\r\n")  # Mark the beginning of a time series
+            for oneClass in oneSeries:
+                for i in oneClass:
+                    resultFile.writelines(str(i) + ",")  # Write each timestamp
+                resultFile.writelines("\r\n")
+            resultFile.writelines("end\r\n")  # Mark the end of a time series
+        resultFile.close()  # Close the file after writing
     
-    # Write the original labels (y)
-    resultFile = open(os.path.join(imputation_dir, self.model_name, self.model_dir, "batch" + str(batchid) + "y"), 'w')
-    for oneSeries in data_y:
-        for oneClass in oneSeries:
-            resultFile.writelines(str(oneClass) + ",")  # Write each label
-        resultFile.writelines("\r\n")  # New line after each series
-    resultFile.close()  # Close the file after writing
+        # Write the original labels (y)
+        resultFile = open(os.path.join(imputation_dir,
+                                       self.model_name,
+                                       self.model_dir,
+                                       "batch" + str(batchid) + "y"), 'w')
+        for oneSeries in data_y:
+            for oneClass in oneSeries:
+                resultFile.writelines(str(oneClass) + ",")  # Write each label
+            resultFile.writelines("\r\n")  # New line after each series
+        resultFile.close()  # Close the file after writing
 
-def writeG_Samples(self, filename, step, o):
-    # Create a directory to save generated samples if it doesn't exist
-    if not os.path.exists(os.path.join("G_results", self.model_name, self.model_dir)):
-        os.makedirs(os.path.join("G_results", self.model_name, self.model_dir))
+    def writeG_Samples(self, filename, step, o):
+        # Create a directory to save generated samples if it doesn't exist
+        if not os.path.exists(os.path.join("G_results",
+                                     self.model_name,
+                                     self.model_dir)):
+            os.makedirs(os.path.join("G_results",
+                                     self.model_name,
+                                     self.model_dir))
     
-    # Open a file to write generated samples
-    resultFile = open(os.path.join("G_results", self.model_name, self.model_dir, filename + str(step)), 'w')
-    for oneSeries in o:
-        resultFile.writelines("begin\r\n")  # Mark the beginning of a generated series
-        for oneClass in oneSeries:
-            for i in oneClass.flat:
-                resultFile.writelines(str(i) + ",")  # Write each value in the generated series
-            resultFile.writelines("\r\n")
-        resultFile.writelines("end\r\n")  # Mark the end of a generated series
-    resultFile.close()  # Close the file after writing
+        # Open a file to write generated samples
+        resultFile = open(os.path.join("G_results",
+                                       self.model_name,
+                                       self.model_dir,
+                                       filename + str(step)), 'w')
+        for oneSeries in o:
+            resultFile.writelines("begin\r\n")  # Mark the beginning of a generated series
+            for oneClass in oneSeries:
+                for i in oneClass.flat:
+                    resultFile.writelines(str(i) + ",")  # Write each value in the generated series
+                resultFile.writelines("\r\n")
+            resultFile.writelines("end\r\n")  # Mark the end of a generated series
+        resultFile.close()  # Close the file after writing
 
-def save(self, checkpoint_dir, step):
-    # Create a directory for saving the checkpoint if it doesn't exist
-    checkpoint_dir = os.path.join(checkpoint_dir, self.model_name, self.model_dir)
-    if not os.path.exists(checkpoint_dir):
-        os.makedirs(checkpoint_dir)
+    def save(self, checkpoint_dir, step):
+        # Create a directory for saving the checkpoint if it doesn't exist
+        checkpoint_dir = os.path.join(checkpoint_dir, self.model_name, self.model_dir)
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
 
-    # Save the current session state to the specified checkpoint directory
-    self.saver.save(self.sess, os.path.join(checkpoint_dir, self.model_name + '.model'), global_step=step)
+        # Save the current session state to the specified checkpoint directory
+        self.saver.save(self.sess, os.path.join(checkpoint_dir, self.model_name + '.model'), global_step=step)
 
-def load(self, checkpoint_dir):
-    import re  # Import regex for parsing checkpoint filenames
-    print(" [*] Reading checkpoints...")
-    checkpoint_dir = os.path.join(checkpoint_dir, self.model_name, self.model_dir)
+    def load(self, checkpoint_dir):
+        import re  # Import regex for parsing checkpoint filenames
+        print(" [*] Reading checkpoints...")
+        checkpoint_dir = os.path.join(checkpoint_dir, self.model_name, self.model_dir)
 
-    # Check for existing checkpoints in the directory
-    ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
-    if ckpt and ckpt.model_checkpoint_path:
-        # Restore the model from the checkpoint
-        ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
-        self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
-        # Extract the counter value from the checkpoint filename
-        counter = int(next(re.finditer("(\d+)(?!.*\d)", ckpt_name)).group(0))
-        print(" [*] Success to read {}".format(ckpt_name))  # Confirmation of successful load
-        return True, counter  # Return success status and the counter
-    else:
-        print(" [*] Failed to find a checkpoint")  # Error message if no checkpoint found
-        return False, 0  # Return failure status and zero counter
+        # Check for existing checkpoints in the directory
+        ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+        if ckpt and ckpt.model_checkpoint_path:
+            # Restore the model from the checkpoint
+            ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+            self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
+            # Extract the counter value from the checkpoint filename
+            counter = int(next(re.finditer("(\d+)(?!.*\d)", ckpt_name)).group(0))
+            print(" [*] Success to read {}".format(ckpt_name))  # Confirmation of successful load
+            return True, counter  # Return success status and the counter
+        else:
+            print(" [*] Failed to find a checkpoint")  # Error message if no checkpoint found
+            return False, 0  # Return failure status and zero counter
