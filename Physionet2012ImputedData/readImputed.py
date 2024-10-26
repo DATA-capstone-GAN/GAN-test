@@ -5,56 +5,56 @@ Created on Wed Feb 14 10:50:14 2018
 
 @author: luoyonghong
 """
-import os
-import random
+import os                                                                         # Used for handling file and directory paths.
+import random                                                                     # Used to shuffle the data for the training process.
 class ReadImputedPhysionetData:
     def __init__(self, dataPath ):
-        #一个文件一个batch，但需要注意，x,y,delta之间的匹配
-        #例子： batch1y,batch1x,batch1delta
-        #batchid从1开始
-        self.files = os.listdir(dataPath)
-        self.dataPath=dataPath
-        self.count=int(len(self.files)/3)
+        # One file per batch, but need to pay attention to the matching between x, y, and delta
+        # Example: batch1y, batch1x, batch1delta
+        # Batch ID starts from 1
+        self.files = os.listdir(dataPath)                                         # List all of the files in the directory (dataPath).
+        self.dataPath=dataPath                                                    # Store the path for later use. 
+        self.count=int(len(self.files)/3)                                         # Stores the number of batches.  Within each batch, there are 3 files (batchX: features, batchY: labels, batchDelta: time dependencies).
         
-    def load(self):
-        count=int(self.count)
-        self.x=[]
-        self.y=[]
-        self.delta=[]
-        self.x_lengths=[]
-        self.m=[]
-        for i in range(1,count+1):
-            file_x=open(os.path.join(self.dataPath,"batch"+str(i)+"x"))
-            file_y=open(os.path.join(self.dataPath,"batch"+str(i)+"y"))
-            file_delta=open(os.path.join(self.dataPath,"batch"+str(i)+"delta"))
-            this_x,this_lengths=self.readx(file_x)
-            self.x.extend(this_x)
-            self.x_lengths.extend(this_lengths)
-            self.y.extend(self.ready(file_y))
-            this_delta,this_m=self.readdelta(file_delta)
-            self.delta.extend(this_delta)
-            self.m.extend(this_m)
-            file_x.close()
-            file_y.close()
-            file_delta.close()
-        self.maxLength=len(self.x[0])
+    def load(self):                                                               # Reads all batches into memory.
+        count=int(self.count)                                                     # Set count to equal the number of batches in the imputed data.
+        self.x=[]                                                                 # Initialize feature variable list.
+        self.y=[]                                                                 # Initialize label variable list.
+        self.delta=[]                                                             # Initialize time dependency list variable.
+        self.x_lengths=[]                                                         # Stores the number of time steps for each batch since this can vary between batches.
+        self.m=[]                                                                 # Stores the mask matrix that will identify which values are missing and which are present.
+        for i in range(1,count+1):                                                # Iterate over all numbers in count (the number of batches).
+            file_x=open(os.path.join(self.dataPath,"batch"+str(i)+"x"))           # Open the features file (x).
+            file_y=open(os.path.join(self.dataPath,"batch"+str(i)+"y"))           # Open the labels file (y).
+            file_delta=open(os.path.join(self.dataPath,"batch"+str(i)+"delta"))   # Open the time dependencies file (delta).
+            this_x,this_lengths=self.readx(file_x)                                # Read in the feature data for specific batch using function defined below (readx()).
+            self.x.extend(this_x)                                                 # Add batch feature data to previously initialized (self.x: feature list).
+            self.x_lengths.extend(this_lengths)                                   # Add batch feature lengths to previously initialized (self.x_lengths: feature lengths list)
+            self.y.extend(self.ready(file_y))                                     # Read in label data for specific batch using function defined below (ready()) and add label data to previously initialized (self.y: label list).
+            this_delta,this_m=self.readdelta(file_delta)                          # Read in time dependency data for specific batch using function defined below (readdelta())
+            self.delta.extend(this_delta)                                         # Add time dependency data to previously initialized (self.delta: time dependency list).
+            self.m.extend(this_m)                                                 # Add mask matrix data for specific batch to previouly initialized (self.m: mask matrix list).
+            file_x.close()                                                        # Close the feature data file for the specific batch.
+            file_y.close()                                                        # Close the label data file for the specific batch.
+            file_delta.close()                                                    # Close the time dependency data file for the specific batch.
+        self.maxLength=len(self.x[0])                                             # Sets the max sequence length for the feature data list to that of the first occurance.  Will assume that every patients sequence after this will be equal or less than this value.
         
         
-    def readx(self,x):
-        this_x=[]
-        this_lengths=[]
-        count=1
-        for line in x.readlines():
-            if count==1:
-                words=line.strip().split(",")
-                for w in words:
-                    if w=='':
-                        continue
-                    this_lengths.append(int(w))
+    def readx(self,x):                                                            # Function used above that reads the feature data in each batch.
+        this_x=[]                                                                 # Stores the feature values for the batch.
+        this_lengths=[]                                                           # Sores the sequence length of the features for each batch.
+        count=1                                                                   # Initializes a counter to 1, to be used for reading in lines of feature data file.
+        for line in x.readlines():                                                # Iterate over all lines in the feature file of the batch and read them in.
+            if count==1:                                                          # Sets conditional for reading in lines.
+                words=line.strip().split(",")                                     # Removes the whitespace and splits the feature data file on commas.
+                for w in words:                                                   # Iterate over all of the words in the feature data file.
+                    if w=='':                                                     # Set conditional for empty string value.
+                        continue                                                  # Keep moving if value is empty string.
+                    this_lengths.append(int(w))                                   # Add the length of the sequence to this.lengths list and convert to integer type.
             else:
-                if "end" in line:
+                if "end" in line:                                                 # If end of line is idenfied keep moving.
                     continue
-                if "begin" in line:
+                if "begin" in line:                                               # If a new line is identified.
                     d=[]
                     this_x.append(d)
                 else:
