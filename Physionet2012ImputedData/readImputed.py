@@ -1,3 +1,6 @@
+# Processes the imputed results from the WGAN_GRI so it can be fed to the Run_GAN_imputed.py script.
+# Finds the epoch with the highest AUC score.
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
