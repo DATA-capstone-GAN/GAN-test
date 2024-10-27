@@ -1,3 +1,7 @@
+# Overall this script handles operations that are essential for the WGAN's operation.
+# It covers batch normalization, convolutional layer, deconvolution, and activation functions.
+# These are the building blocks for the generator and discriminator networks.
+
 """
 Most codes from https://github.com/carpedm20/DCGAN-tensorflow
 """
