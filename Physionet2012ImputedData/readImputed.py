@@ -1,4 +1,5 @@
 # Processes and structures the imputed results from the WGAN_GRI so it can be fed to the Run_GAN_imputed.py script.
+# The Run_GAN_imputed.py will evaluate the quality of the imputations created by the WGAN_GRUI.
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
