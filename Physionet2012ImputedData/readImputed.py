@@ -22,13 +22,13 @@ class ReadImputedPhysionetData:
         count=int(self.count)                                                     # Set count to equal the number of batches in the imputed data.
         self.x=[]                                                                 # Initialize feature variable list.
         self.y=[]                                                                 # Initialize label variable list.
-        self.delta=[]                                                             # Initialize time dependency list variable.
+        self.delta=[]                                                             # Initialize time gap list variable.
         self.x_lengths=[]                                                         # Stores the number of time steps for each batch since this can vary between batches.
         self.m=[]                                                                 # Stores the mask matrix that will identify which values are missing and which are present.
         for i in range(1,count+1):                                                # Iterate over all numbers in count (the number of batches).
             file_x=open(os.path.join(self.dataPath,"batch"+str(i)+"x"))           # Open the features file (x).
             file_y=open(os.path.join(self.dataPath,"batch"+str(i)+"y"))           # Open the labels file (y).
-            file_delta=open(os.path.join(self.dataPath,"batch"+str(i)+"delta"))   # Open the time dependencies file (delta).
+            file_delta=open(os.path.join(self.dataPath,"batch"+str(i)+"delta"))   # Open the time gap file (delta).
             this_x,this_lengths=self.readx(file_x)                                # Read in the feature data for specific batch using function defined below (readx()).
             self.x.extend(this_x)                                                 # Add batch feature data to previously initialized (self.x: feature list).
             self.x_lengths.extend(this_lengths)                                   # Add batch feature lengths to previously initialized (self.x_lengths: feature lengths list)
@@ -82,14 +82,14 @@ class ReadImputedPhysionetData:
             this_y.append(d)                                                      # Add list of label values for this batch to this_y.
         return this_y                                                             # Return the label values for the batch (series of 1s and 0s).
     
-    def readdelta(self,delta):                                                    # Function used above that reads the delta (time dependencies) data in each batch.
-        this_delta=[]                                                             # Initialize empty list to store time dependencies.
+    def readdelta(self,delta):                                                    # Function used above that reads the delta (time gap) data in each batch.
+        this_delta=[]                                                             # Initialize empty list to store time gaps.
         this_m=[]                                                                 # Initialize empty list to store the mask matrix.
         for line in delta.readlines():                                            # Iterate over every line in the delta file of the batch and read them in.
             if "end" in line:                                                     # If the end of the sequence is detected, keep moving.
                 continue
             if "begin" in line:                                                   # If a new sequence is detected...
-                d=[]                                                              # Create empty list to store dependecy values.
+                d=[]                                                              # Create empty list to store time gap values.
                 this_delta.append(d)                                              # Add empty list to this_delta variable.
                 t=[]                                                              # Create empty list to store the mask matrix values.
                 this_m.append(t)                                                  # Add empty mask matrix list to this_m variable.
@@ -98,26 +98,26 @@ class ReadImputedPhysionetData:
                 oneclass=[]                                                       # Create empty list for delta values.
                 onem=[]                                                           # Create empty list for mask values.
                 for i in range(len(words)):                                       # Iterate over all of the entires in words variable (delta file).
-                    w=words[i]                                                    # 
-                    if w=='':
+                    w=words[i]                                                    # Create variable to identify current item in delta file line.
+                    if w=='':                                                     # If empty value is detected, keep moving.
                         continue
-                    oneclass.append(float(w))
-                    if i==0 or float(w) >0:
-                        onem.append(1.0)
+                    oneclass.append(float(w))                                     # Otherwise, add value to oneclass list and convert to float type.
+                    if i==0 or float(w) >0:                                       # Conditional to check if current delta value is 0 or greater than 0. 
+                        onem.append(1.0)                                          # Add 1.0 to mask matrix if so.  This indicates a time presence.
                     else:
-                        onem.append(0.0)
-                this_delta[-1].append(oneclass)
-                this_m[-1].append(onem)
-        return this_delta,this_m
+                        onem.append(0.0)                                          # Otherwise, add 0.0 to mask matrix to indicate missing.
+                this_delta[-1].append(oneclass)                                   # Add then entire list of delta values for this line to the end of this_delta variable. 
+                this_m[-1].append(onem)                                           # Add the entire list of mask values to the end of this_m variable.
+        return this_delta,this_m                                                  # Returen the time values (delta) and the missing value indicators (mask).
     
-    def shuffle(self,batchSize=128,isShuffle=False):
+    def shuffle(self,batchSize=128,isShuffle=False):                              # This function shuffles the data x, y, delta, and lengths files to help prevent overfitting.  It prevents repeated learning in the same order.
         self.batchSize=batchSize
         if isShuffle:
             c = list(zip(self.x,self.y,self.m,self.delta,self.x_lengths))
             random.shuffle(c)
             self.x,self.y,self.m,self.delta,self.x_lengths=zip(*c)
             
-    def nextBatch(self):
+    def nextBatch(self):                                                          # Generates batches of data for the model durning the training step.
         i=1
         while i*self.batchSize<=len(self.x):
             x=[]
@@ -136,7 +136,7 @@ class ReadImputedPhysionetData:
 #x,y,mean,m,delta,x_lengths,lastvalues
 if __name__ == '__main__'     :
 
-    dt=ReadImputedPhysionetData("/Users/luoyonghong/tensorflow_works/Gan_Imputation/imputation_results/35-0.001-1400-18/")
+    dt=ReadImputedPhysionetData("/Users/luoyonghong/tensorflow_works/Gan_Imputation/imputation_results/35-0.001-1400-18/")  # I think we need to change this file path.  Its currently pointing to the local repo of the original author.
     dt.load()
     print("number of batches is : "+str(dt.count))
     batchCount=1
