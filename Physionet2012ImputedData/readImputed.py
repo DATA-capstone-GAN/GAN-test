@@ -1,5 +1,4 @@
-# Processes the imputed results from the WGAN_GRI so it can be fed to the Run_GAN_imputed.py script.
-# Finds the epoch with the highest AUC score.
+# Processes and structures the imputed results from the WGAN_GRI so it can be fed to the Run_GAN_imputed.py script.
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -53,53 +52,53 @@ class ReadImputedPhysionetData:
                 for w in words:                                                   # Iterate over all of the words in the feature data file.
                     if w=='':                                                     # Set conditional for empty string value.
                         continue                                                  # Keep moving if value is empty string.
-                    this_lengths.append(int(w))                                   # Add the length of the sequence to this.lengths list and convert to integer type.
+                    this_lengths.append(int(w))                                   # Add the lengths of the sequence to this.lengths list and convert to integer type (these lengths are stored in the first line of the feature file).
             else:
-                if "end" in line:                                                 # If end of line is idenfied keep moving.
+                if "end" in line:                                                 # If end of sequence is idenfied keep moving.
                     continue
-                if "begin" in line:                                               # If a new line is identified.
-                    d=[]
-                    this_x.append(d)
+                if "begin" in line:                                               # If a new sequence is identified.
+                    d=[]                                                          # Intialize empty list. 
+                    this_x.append(d)                                              # Add empty list to list that will store feature values (this_x).
                 else:
-                    words=line.strip().split(",")
-                    oneclass=[]
-                    for w in words:
-                        if w=='':
+                    words=line.strip().split(",")                                 # Removes the whitespace and splits the feature data file on commas.
+                    oneclass=[]                                                   # Create empty list.
+                    for w in words:                                               # Iterate over all items in the feature line.
+                        if w=='':                                                 # If empty string is detected keep moving.
                             continue
-                        oneclass.append(float(w))
-                    this_x[-1].append(oneclass)
-            count+=1
-        return this_x,this_lengths
+                        oneclass.append(float(w))                                 # Add the feature value to oneclass list and convert to float type otherwise.
+                    this_x[-1].append(oneclass)                                   # Add the entire row of features (oneclass list) to the this_x feature list initialized at the start of the function.
+            count+=1                                                              # Increment counter so the loop continues to run through each line of the feature file.
+        return this_x,this_lengths                                                # Return the feature values and lengths for the batch.
     
-    def ready(self,y):
-        this_y=[]
-        for line in y.readlines():
-            d=[]
-            words=line.strip().split(",")
-            for w in words:
-                if w=='':
+    def ready(self,y):                                                            # Function used above that reads the label data in each batch.
+        this_y=[]                                                                 # Stores the feature values for the batch.
+        for line in y.readlines():                                                # Iterate over all lines in the label file of the batch and read them in.
+            d=[]                                                                  # Intialize empty list for storage.
+            words=line.strip().split(",")                                         # Removes the whitespace and splits the label data file on commas.
+            for w in words:                                                       # Iterate overall all of the entries in words variable.
+                if w=='':                                                         # If an empty string is detected, keep moving.
                     continue
-                d.append(int(w))
-            this_y.append(d)
-        return this_y
+                d.append(int(w))                                                  # Add entry to the d list and convert to integer if not empty.
+            this_y.append(d)                                                      # Add list of label values for this batch to this_y.
+        return this_y                                                             # Return the label values for the batch (series of 1s and 0s).
     
-    def readdelta(self,delta):
-        this_delta=[]
-        this_m=[]
-        for line in delta.readlines():
-            if "end" in line:
+    def readdelta(self,delta):                                                    # Function used above that reads the delta (time dependencies) data in each batch.
+        this_delta=[]                                                             # Initialize empty list to store time dependencies.
+        this_m=[]                                                                 # Initialize empty list to store the mask matrix.
+        for line in delta.readlines():                                            # Iterate over every line in the delta file of the batch and read them in.
+            if "end" in line:                                                     # If the end of the sequence is detected, keep moving.
                 continue
-            if "begin" in line:
-                d=[]
-                this_delta.append(d)
-                t=[]
-                this_m.append(t)
+            if "begin" in line:                                                   # If a new sequence is detected...
+                d=[]                                                              # Create empty list to store dependecy values.
+                this_delta.append(d)                                              # Add empty list to this_delta variable.
+                t=[]                                                              # Create empty list to store the mask matrix values.
+                this_m.append(t)                                                  # Add empty mask matrix list to this_m variable.
             else:
-                words=line.strip().split(",")
-                oneclass=[]
-                onem=[]
-                for i in range(len(words)):
-                    w=words[i]
+                words=line.strip().split(",")                                     # Removes the whitespace and splits the delta data file on commas.
+                oneclass=[]                                                       # Create empty list for delta values.
+                onem=[]                                                           # Create empty list for mask values.
+                for i in range(len(words)):                                       # Iterate over all of the entires in words variable (delta file).
+                    w=words[i]                                                    # 
                     if w=='':
                         continue
                     oneclass.append(float(w))
