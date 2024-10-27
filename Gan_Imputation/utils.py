@@ -1,3 +1,6 @@
+# Overall this script is used for processing image-based workflows like the MNIST dataset.
+# It doesn't appear to be directly used for the Physionet data.
+
 """
 Most codes from https://github.com/carpedm20/DCGAN-tensorflow
 """
