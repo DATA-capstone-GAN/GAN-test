@@ -30,7 +30,7 @@ def main():
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--gen-length', type=int, default=96)
     parser.add_argument('--impute-iter', type=int, default=400)
-    parser.add_argument('--pretrain-epoch', type=int, default=5)
+    parser.add_argument('--pretrain-epoch', type=int, default=30)
     parser.add_argument('--run-type', type=str, default='train')
     parser.add_argument('--data-path', type=str, default="../set-a/")
     parser.add_argument('--model-path', type=str, default=None)
@@ -39,7 +39,7 @@ def main():
     parser.add_argument('--g-loss-lambda',type=float,default=0.1)
     parser.add_argument('--beta1',type=float,default=0.5)
     parser.add_argument('--lr', type=float, default=0.001)  #When the learning rate (lr) is 0.001, the pretrain_loss decreases quickly, and 4 epochs are sufficient.
-    parser.add_argument('--epoch', type=int, default=30)
+    parser.add_argument('--epoch', type=int, default=5)
     parser.add_argument('--n-inputs', type=int, default=41)
     parser.add_argument('--n-hidden-units', type=int, default=64)
     parser.add_argument('--n-classes', type=int, default=2)

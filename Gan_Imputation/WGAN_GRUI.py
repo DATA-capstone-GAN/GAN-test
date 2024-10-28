@@ -68,14 +68,20 @@ class WGAN(object):
         self.learning_rate = args.lr
         self.beta1 = args.beta1
         if "1.5" in tf.__version__ or "1.7" in tf.__version__ :
-            self.grud_cell_d = mygru_cell.MyGRUCell15(self.n_hidden_units)
-            self.grud_cell_g = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            self.grud_cell_d_fw = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            self.grud_cell_d_bw = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            self.grud_cell_g_fw = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            self.grud_cell_g_bw = mygru_cell.MyGRUCell15(self.n_hidden_units)
         elif "1.4" in tf.__version__:
-            self.grud_cell_d = mygru_cell.MyGRUCell4(self.n_hidden_units)
-            self.grud_cell_g = mygru_cell.MyGRUCell4(self.n_hidden_units)
+            self.grud_cell_d_fw = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            self.grud_cell_d_bw = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            self.grud_cell_g_fw = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            self.grud_cell_g_bw = mygru_cell.MyGRUCell15(self.n_hidden_units)
         elif "1.2" in tf.__version__:
-            self.grud_cell_d = mygru_cell.MyGRUCell2(self.n_hidden_units)
-            self.grud_cell_g = mygru_cell.MyGRUCell2(self.n_hidden_units)
+            self.grud_cell_d_fw = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            self.grud_cell_d_bw = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            self.grud_cell_g_fw = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            self.grud_cell_g_bw = mygru_cell.MyGRUCell15(self.n_hidden_units)
         # test
         self.sample_num = 64  # This establishes the number of generated samples (images) to be saved at each evaluation phase.  Used to evaluate the generators performance visually.
 
@@ -112,17 +118,25 @@ class WGAN(object):
             
             X_in = tf.reshape(X, [-1, self.n_steps, self.n_inputs+self.n_hidden_units])     # The previous combined matrix is reshaped to fit the format for the RNN.
          
-            init_state = self.grud_cell_g.zero_state(self.batch_size, dtype=tf.float32)     # initialize hidden cell of Gated Reccurent Unit GRU with an all-zero state
-            
+            init_state_fw = self.grud_cell_g_fw.zero_state(self.batch_size, dtype=tf.float32)     # initialize hidden cell of Gated Reccurent Unit GRU with an all-zero state
+            init_state_bw = self.grud_cell_g_bw.zero_state(self.batch_size, dtype=tf.float32)   
+          
             # Runs the RNN using the Gated Recurrent Unit (GRU) over the input and return outputs for each time step as well as the final hidden state.
             # outpus stores the output of the RNN at each step, final_state stores the last hidden state.
-            outputs, final_state = tf.nn.dynamic_rnn(self.grud_cell_g, X_in, \
-                                initial_state=init_state,\
+            outputs, final_states = tf.nn.bidirectional_dynamic_rnn(self.grud_cell_g_fw, 
+                                self.grud_cell_g_bw,                             
+                                X_in, \
+                                initial_state_fw=init_state_fw,\
+                                initial_state_bw=init_state_bw,                                  
                                 sequence_length=X_lengths,
                                 time_major=False)
+          
             #outputs: batch_size*n_steps*n_hiddensize
             #The output is reshaped and the final predictions are produced.
+            outputs_fw, outputs_bw = outputs 
+            outputs = tf.add(outputs_fw, outputs_bw) / 2.0
             outputs=tf.reshape(outputs,[-1,self.n_hidden_units])                            # The RNN output is reshaped and the final predictions are produced and then reshaped to match the original input.
+            
             out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out          # Generates predictions based on the reshaped RNN outputs. Dropout function helps prevent overfitting.
             out_predict=tf.reshape(out_predict,[-1,self.n_steps,self.n_inputs])             # Reshapes output predictions to 3D tensor.
             return out_predict                                                              # Returns the predictions for the missing values.
@@ -155,13 +169,21 @@ class WGAN(object):
               
             X_in = tf.reshape(X, [self.batch_size, self.n_steps , self.n_inputs+self.n_hidden_units])  #The previous combined matrix is reshaped to fit the format for the RNN.
             
-            init_state = self.grud_cell_d.zero_state(self.batch_size, dtype=tf.float32) # initialize with an all-zero state
-
+            init_state_fw = self.grud_cell_d_fw.zero_state(self.batch_size, dtype=tf.float32) # initialize with an all-zero state
+            init_state_bw = self.grud_cell_d_bw.zero_state(self.batch_size, dtype=tf.float32)
+          
             #runs the Gated Recurrent Unit over the input and return outputs for each time step as well as the final hidden state.
-            outputs, final_state = tf.nn.dynamic_rnn(self.grud_cell_d, X_in, \
-                                initial_state=init_state,\
-                                sequence_length=X_lengths,
-                                time_major=False)
+            outputs, final_states = tf.nn.bidirectional_dynamic_rnn(self.grud_cell_d_fw, 
+                                                     self.grud_cell_d_bw,
+                                                     X_in, \
+                                                     initial_state_fw=init_state_fw,\
+                                                     initial_state_bw=init_state_bw,
+                                                     sequence_length=X_lengths,
+                                                     time_major=False)
+
+            # Average forward and backward directions for final state
+            final_state_fw, final_state_bw = final_states
+            final_state = tf.add(final_state_fw, final_state_bw) / 2.0
          
             # final_state:batch_size*n_hiddensize
             # Cannot use the last one, should use the length one. Previously, the last one was used, so the output was always b_out regardless."
@@ -206,17 +228,28 @@ class WGAN(object):
             x=tf.concat([x,rth],1)            
             X_in = tf.reshape(x, [-1, 1, self.n_inputs+self.n_hidden_units])
             
-            init_state = self.grud_cell_g.zero_state(self.batch_size, dtype=tf.float32) # 初始化全零 state
+            init_state_fw = self.grud_cell_g_fw.zero_state(self.batch_size, dtype=tf.float32) # 初始化全零 state
+            init_state_bw = self.grud_cell_g_bw.zero_state(self.batch_size, dtype=tf.float32)
+          
             #z=tf.reshape(z,[self.batch_size,1,self.z_dim])
             seq_len=tf.constant(1,shape=[self.batch_size])
             
-            outputs, final_state = tf.nn.dynamic_rnn(self.grud_cell_g, X_in, \
-                                initial_state=init_state,\
-                                sequence_length=seq_len,
-                                time_major=False)
-            init_state=final_state
+            outputs, final_states = tf.nn.bidirectional_dynamic_rnn(self.grud_cell_g_fw, 
+                                                      self.grud_cell_g_bw,
+                                                      X_in, \
+                                                      initial_state_fw=init_state_fw,\
+                                                      initial_state_bw=init_state_bw,
+                                                      sequence_length=seq_len,
+                                                      time_major=False)
+
+            final_state_fw, final_state_bw = final_states
+            init_state=tf.add(final_state_fw, final_state_bw) / 2.0
+          
             #outputs: batch_size*1*n_hidden
+            outputs_fw, outputs_bw = outputs
+            outputs = tf.add(outputs_fw, outputs_bw) / 2.0
             outputs=tf.reshape(outputs,[-1,self.n_hidden_units])
+          
             # full connect
             out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out
             out_predict=tf.reshape(out_predict,[-1,1,self.n_inputs])
@@ -237,11 +270,20 @@ class WGAN(object):
                 X_in = tf.reshape(x, [-1, 1, self.n_inputs+self.n_hidden_units])
 
                 # run the GRU for the current step
-                outputs, final_state = tf.nn.dynamic_rnn(self.grud_cell_g, X_in, \
-                            initial_state=init_state,\
-                            sequence_length=seq_len,
-                            time_major=False)
-                init_state=final_state # update state for next step
+                outputs, final_states = tf.nn.bidirectional_dynamic_rnn(self.grud_cell_g_fw, 
+                                                          self.grud_cell_g_bw,
+                                                          X_in, \
+                                                          initial_state_fw=init_state_fw,\
+                                                          initial_state_bw=init_state_bw,
+                                                          sequence_length=seq_len,
+                                                          time_major=False)
+              
+                # Average forward and backward directions for final state
+                final_state_fw, final_state_bw = final_states
+                init_state=tf.add(final_state_fw, final_state_bw) / 2.0 # update state for next step
+
+                outputs_fw, outputs_bw = outputs
+                outputs = tf.add(outputs_fw, outputs_bw) / 2.0
                 outputs=tf.reshape(outputs,[-1,self.n_hidden_units])
                 out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out
                 out_predict=tf.reshape(out_predict,[-1,1,self.n_inputs])
@@ -756,11 +798,31 @@ class WGAN(object):
         if ckpt and ckpt.model_checkpoint_path:
             # Restore the model from the checkpoint
             ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
-            self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
-            # Extract the counter value from the checkpoint filename
-            counter = int(next(re.finditer("(\d+)(?!.*\d)", ckpt_name)).group(0))
-            print(" [*] Success to read {}".format(ckpt_name))  # Confirmation of successful load
-            return True, counter  # Return success status and the counter
+            try:
+                reader = tf.train.NewCheckpointReader(ckpt.model_checkpoint_path)
+                var_to_shape_map = reader.get_variable_to_shape_map()
+
+                available_vars = [
+                  v for v in tf.global_variables() if v.name.split(':')[0] in var_to_shape_map
+                ]
+
+                saver = tf.train.Saver(available_vars)
+                saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
+
+                self.sess.run(tf.global_variables_initializer())
+                
+                # Extract the counter value from the checkpoint filename
+                counter = int(next(re.finditer("(\d+)(?!.*\d)", ckpt_name)).group(0))
+                print(" [*] Success to read {}".format(ckpt_name))  # Confirmation of successful load
+                return True, counter  # Return success status and the counter
+
+            except Exception as e:
+                print(" [!] Error restoring variables: {}".format(e))
+                print(" [*] Proceeding with intialized variables...")
+                self.sess.run(tf.global_variables_initializer())
+          
         else:
             print(" [*] Failed to find a checkpoint")  # Error message if no checkpoint found
+            self.sess.run(tf.global_variables_initializer())
             return False, 0  # Return failure status and zero counter
+        
