@@ -118,7 +118,7 @@ class WGAN(object):
             
             X_in = tf.reshape(X, [-1, self.n_steps, self.n_inputs+self.n_hidden_units])     # The previous combined matrix is reshaped to fit the format for the RNN.
          
-            init_state_fw = self.grud_cell_g_fw.zero_state(self.batch_size, dtype=tf.float32)     # initialize hidden cell of Gated Reccurent Unit GRU with an all-zero state
+            init_state_fw = self.grud_cell_g_fw.zero_state(self.batch_size, dtype=tf.float32)     # initialize hidden cell of Gated Reccurent Unit GRU with an all-zero state. Provides neutral starting point and will update as GRU processing sequence.
             init_state_bw = self.grud_cell_g_bw.zero_state(self.batch_size, dtype=tf.float32)   
           
             # Runs the RNN using the Gated Recurrent Unit (GRU) over the input and return outputs for each time step as well as the final hidden state.
