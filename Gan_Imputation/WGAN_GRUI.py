@@ -122,7 +122,8 @@ class WGAN(object):
             init_state_bw = self.grud_cell_g_bw.zero_state(self.batch_size, dtype=tf.float32)   
           
             # Runs the RNN using the Gated Recurrent Unit (GRU) over the input and return outputs for each time step as well as the final hidden state.
-            # outpus stores the output of the RNN at each step, final_state stores the last hidden state.
+            # outputs stores the output of the RNN at each step, final_state stores the last hidden state.
+            # outputs = predictions for values at specific times, final_states = summary of entire sequence, the mortality classification.
             outputs, final_states = tf.nn.bidirectional_dynamic_rnn(self.grud_cell_g_fw, 
                                 self.grud_cell_g_bw,                             
                                 X_in, \
