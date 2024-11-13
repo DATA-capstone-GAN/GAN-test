@@ -369,23 +369,72 @@ class WGAN(object):
                                                       is_training=False, reuse=True ,isTdata=False)
         
         # loss for imputation, combines reconstruction and adversarial loss
-        self.impute_loss=tf.reduce_mean(tf.square(tf.multiply(impute_out,self.m)-self.x))-self.g_loss_lambda*tf.reduce_mean(impute_fake_logits)
-        #self.impute_loss=tf.reduce_mean(tf.square(tf.multiply(impute_out,self.m)-self.x))
+      
+        # Wasserstein (Original)
+        # self.impute_loss=tf.reduce_mean(tf.square(tf.multiply(impute_out,self.m)-self.x))-self.g_loss_lambda*tf.reduce_mean(impute_fake_logits)
 
+        # Pearson Chi Squared (Modification)
+        # self.impute_loss = tf.reduce_mean(tf.square(tf.multiply(impute_out, self.m) - self.x)) - self.g_loss_lambda * tf.reduce_mean(0.25 * impute_fake_logits**2 + impute_fake_logits)
+
+        # Forward KL (Modification)
+        self.impute_loss = tf.reduce_mean(tf.square(tf.multiply(impute_out, self.m) - self.x)) - self.g_loss_lambda * tf.reduce_mean(tf.exp(impute_fake_logits - 1))
+
+        # Reverse KL (Modification)
+        # self.impute_loss = tf.reduce_mean(tf.square(tf.multiply(impute_out, self.m) - self.x)) - self.g_loss_lambda * tf.reduce_mean(-1 - impute_fake_logits)
+
+        # Squared Hellinger
+        # self.impute_loss = tf.reduce_mean(tf.square(tf.multiply(impute_out, self.m) - self.x)) - self.g_loss_lambda * tf.reduce_mean((1 - tf.exp(impute_fake_logits)) / (tf.exp(impute_fake_logits)))
+      
         # final imputed data is a mixture between real and impputed data, decided by mask m
         self.impute_out=impute_out
         
         #the imputed results
         self.imputed=tf.multiply((1-self.m),self.impute_out)+self.x
+      
         # get loss for discriminator
-        d_loss_real = - tf.reduce_mean(D_real_logits)
-        d_loss_fake = tf.reduce_mean(D_fake_logits)
 
+        # Wasserstein (Original)
+        # d_loss_real = - tf.reduce_mean(D_real_logits)
+        # d_loss_fake = tf.reduce_mean(D_fake_logits)
+        # self.d_loss = d_loss_real + d_loss_fake
+      
+        # Pearson Chi Squared (Modification)
+        # d_loss_real = - tf.reduce_mean(D_real_logits)
+        # d_loss_fake = tf.reduce_mean(0.25*D_fake_logits**2 + D_fake_logits)
+        # self.d_loss = d_loss_real + d_loss_fake
 
+        # Forward KL (Modification)
+        d_loss_real = -tf.reduce_mean(D_real_logits)
+        d_loss_fake = tf.reduce_mean(tf.exp(D_fake_logits - 1))
         self.d_loss = d_loss_real + d_loss_fake
 
+        # Reverse KL (Modification)
+        # d_loss_real = -tf.reduce_mean(-tf.exp(D_real_logits))
+        # d_loss_fake = tf.reduce_mean(-1 - D_fake_logits)
+        # self.d_loss = d_loss_real + d_loss_fake
+
+        # Squared Hellinger
+        # d_loss_real = -tf.reduce_mean(1 - tf.exp(D_real_logits))
+        # d_loss_fake = tf.reduce_mean((1 - tf.exp(D_fake_logits)) / (tf.exp(D_fake_logits)))
+        # self.d_loss = d_loss_real + d_loss_fake
+
         # get loss for generator
-        self.g_loss = - d_loss_fake
+
+        # Wasserstein Distance (Original)
+        # self.g_loss = - d_loss_fake
+
+        # Pearson Chi Squared (Modification)
+        # self.g_loss = -tf.reduce_mean(0.25*D_fake_logits**2 + D_fake_logits)
+
+        # Forward KL (Modification)
+        self.g_loss = -tf.reduce_mean(tf.exp(D_fake_logits - 1))
+
+        # Reverse KL (Modification)
+        # self.g_loss = -tf.reduce_mean(-1 - D_fake_logits)
+
+        # Squared Hellinger
+        # self.g_loss = -tf.reduce_mean((1 - tf.exp(D_fake_logits)) / (tf.exp(D_fake_logits)))
+        
         
 
         """ Training """
