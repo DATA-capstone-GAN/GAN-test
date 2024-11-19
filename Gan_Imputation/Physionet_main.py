@@ -57,6 +57,7 @@ def main():
     parser.add_argument('--isSlicing',type=int,default=1)
     parser.add_argument('--disc-iters',type=int,default=8)
     parser.add_argument('--direction-type', type = str,default = "single")
+    parser.add_argument('--gan-loss', type = str, default = "wasserstein")
     args = parser.parse_args()
 
     #This converts these integer command line arguments to boolean values.
