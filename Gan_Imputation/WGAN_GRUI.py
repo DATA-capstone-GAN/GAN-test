@@ -269,7 +269,7 @@ class WGAN(object):
             X_in = tf.reshape(x, [-1, 1, self.n_inputs+self.n_hidden_units])
             
             # (Modification)
-            if self.direction_type == "bidrectional":
+            if self.direction_type == "bidirectional":
                 init_state_fw = self.grud_cell_g_fw.zero_state(self.batch_size, dtype=tf.float32) # 初始化全零 state
                 init_state_bw = self.grud_cell_g_bw.zero_state(self.batch_size, dtype=tf.float32)
           
@@ -324,7 +324,7 @@ class WGAN(object):
                 X_in = tf.reshape(x, [-1, 1, self.n_inputs+self.n_hidden_units])
 
                 # (Modification)
-                if self.direction_type == "bidrectional":
+                if self.direction_type == "bidirectional":
                     # run the GRU for the current step
                     outputs, final_states = tf.nn.bidirectional_dynamic_rnn(self.grud_cell_g_fw, 
                                                             self.grud_cell_g_bw,
